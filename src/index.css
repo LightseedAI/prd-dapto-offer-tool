@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the PRD Offer Form */
+
+html {
+  scroll-behavior: smooth;
+}
+
+*:focus {
+  outline: none;
+}
+
+/* --- FIX FOR HEADER BOUNCE: Prevent layout shifts on sticky elements --- */
+nav.sticky {
+  /* Prevent any transform or transition that could cause bounce */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Ensure smooth scrolling doesn't cause jank */
+.sticky {
+  will-change: transform;
+}
+
+/* --- FIX FOR POINT 3: Red Highlight Class --- */
+/* We will toggle this class in React when validation fails */
+.input-error {
+  border-color: #dc2626 !important; /* PRD Red */
+  border-width: 1px !important;
+  box-shadow: 0 0 0 1px #dc2626 !important; /* simulates ring */
+}
+
+/* --- FIX FOR POINT 4: Robust Mobile Printing --- */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white;
+  }
+  
+  /* Ensure the content is visible and flows naturally on paper */
+  body, #root {
+    width: 100%;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Hide UI elements clearly */
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  /* Fix for text colors in print */
+  * {
+    color: #000 !important;
+  }
+  
+  /* Reset margins for print */
+  .lg\:ml-56 {
+    margin-left: 0 !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Enhanced mobile optimizations */
+@media (max-width: 640px) {
+  /* Prevent form zoom on iOS */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="tel"], 
+  select, 
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Better touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve signature pad on mobile */
+  canvas {
+    touch-action: none;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .signature-canvas {
+    height: 120px !important;
+  }
+}
+
+/* Desktop sidebar progress animations */
+@media (min-width: 1024px) {
+  .scroll-mt-8 {
+    scroll-margin-top: 2rem;
+  }
+}
+
+/* Smooth progress circle animation */
+svg circle {
+  transition: stroke-dashoffset 0.5s ease-out;
+}
