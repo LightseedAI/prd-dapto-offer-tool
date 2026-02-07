@@ -6,14 +6,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc } from "firebase/firestore";
 
 // Your Firebase Configuration
-// TODO: Replace with PRD Dapto Firebase credentials
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA0_DuIV2ncy0HDuZJtbeu8c_Eedlj-9W0",
+  authDomain: "prd-dapto-offer-tool.firebaseapp.com",
+  projectId: "prd-dapto-offer-tool",
+  storageBucket: "prd-dapto-offer-tool.firebasestorage.app",
+  messagingSenderId: "554675652476",
+  appId: "1:554675652476:web:1823ff7c8643cfa5f446f9"
 };
 
 // TODO: Replace with PRD Dapto agents

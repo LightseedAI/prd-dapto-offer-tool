@@ -161,26 +161,24 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
           </View>
           
           <View style={styles.row}>
-            <Text style={styles.label}>Initial Deposit:</Text>
+            <Text style={styles.label}>Initial Deposit (0.25%) Non Refundable:</Text>
             <Text style={styles.value}>${formData.initialDeposit}</Text>
           </View>
           <View style={{ marginLeft: '30%', marginBottom: 6 }}>
             <Text style={{ fontSize: 8, color: '#64748B', fontStyle: 'italic' }}>
-              Payable immediately upon contract date
+              Payable within 24 hours of offer being accepted
             </Text>
           </View>
           
           <View style={styles.row}>
-            <Text style={styles.label}>Balance Deposit:</Text>
+            <Text style={styles.label}>Balance Deposit ({formData.balanceDepositPercent || '10'}%):</Text>
             <Text style={styles.value}>${formData.balanceDeposit}</Text>
           </View>
-          {formData.balanceDepositTerms && (
-            <View style={{ marginLeft: '30%', marginBottom: 6 }}>
-              <Text style={{ fontSize: 8, color: '#64748B', fontStyle: 'italic' }}>
-                {formData.balanceDepositTerms}
-              </Text>
-            </View>
-          )}
+          <View style={{ marginLeft: '30%', marginBottom: 6 }}>
+            <Text style={{ fontSize: 8, color: '#64748B', fontStyle: 'italic' }}>
+              Payable before expiration of Cooling Off Period{formData.balanceDepositTerms ? ` — ${formData.balanceDepositTerms}` : ''}
+            </Text>
+          </View>
           
           <View style={styles.row}>
             <Text style={styles.label}>Total Deposit:</Text>
@@ -194,14 +192,12 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Conditions</Text>
           
-          {formData.waiverCoolingOff && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Cooling Off Period:</Text>
-              <Text style={{ ...styles.value, fontFamily: 'Helvetica-Bold', color: '#DC2626' }}>
-                WAIVED
-              </Text>
-            </View>
-          )}
+          <View style={styles.row}>
+            <Text style={styles.label}>Cooling Off Period:</Text>
+            <Text style={{ ...styles.value, fontFamily: 'Helvetica-Bold', color: formData.waiverCoolingOff ? '#DC2626' : undefined }}>
+              {formData.waiverCoolingOff ? 'WAIVED' : `${formData.coolingOffPeriod || '5'}-Day (Business Days)`}
+            </Text>
+          </View>
           
           <View style={styles.row}>
             <Text style={styles.label}>Finance Date:</Text>
@@ -254,10 +250,11 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
         {/* NON-BINDING DISCLAIMER */}
         <View style={styles.disclaimer} wrap={false}>
           <Text style={styles.disclaimerText}>
-            IMPORTANT NOTICE: This document is a non-binding expression of interest only and does not constitute a 
-            legally binding contract. Any offer to purchase is subject to the execution of a formal contract of sale 
-            and completion of all necessary legal requirements. Both parties reserve the right to withdraw at any time 
-            prior to exchange of contracts.
+            PLEASE NOTE: The signing of this document does not create a legally binding agreement. It neither obligates
+            the Vendor to sell the property nor the purchaser to buy the property and the purchaser may withdraw this
+            offer at any time prior to formal exchange of Contracts for Sale. As such the property will not be taken off
+            the market until such times as contracts have exchanged. The purchaser should make every endeavour to expedite
+            the exchange of contracts which is the only way to guarantee the purchase.
           </Text>
         </View>
 

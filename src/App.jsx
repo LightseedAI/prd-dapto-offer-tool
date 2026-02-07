@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { PenTool, Calendar, DollarSign, User, Building, Phone, Mail, FileText, Check, X, Printer, Send, Settings, ChevronDown, Users, MapPin, AlertTriangle, Loader, QrCode, Copy, ExternalLink, Link as LinkIcon, RefreshCw, Trash2, Download, Database, Globe, Plus, Image as ImageIcon, Type, Lock, Percent, Edit2, Upload, RotateCcw, AlertCircle, Briefcase, Undo } from 'lucide-react';
+import { PenTool, Calendar, DollarSign, User, Building, Phone, Mail, FileText, Check, X, Printer, Send, Settings, ChevronDown, Users, MapPin, AlertTriangle, Loader, QrCode, Copy, ExternalLink, Link as LinkIcon, RefreshCw, Trash2, Download, Database, Globe, Plus, Image as ImageIcon, Type, Lock, Percent, Edit2, Upload, RotateCcw, AlertCircle, Briefcase, Undo, LogOut } from 'lucide-react';
 // FIREBASE & PDF IMPORTS
 import { pdf } from '@react-pdf/renderer';
 import { OfferPdfDocument } from './OfferPdf';
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
 
 // ==============================================================================
 // CONFIGURATION
@@ -31,7 +32,6 @@ const CONST_FIREBASE_CONFIG = {
 
 // Remove the red placeholder logo - start with empty string
 const ORIGINAL_DEFAULT_LOGO = "";
-const ADMIN_PASSWORD = "PRD";
 
 const DEFAULT_PLACEHOLDERS = {
   purchasePrice: '',
@@ -672,9 +672,11 @@ export default function App() {
     purchasePrice: '',
     initialDeposit: '',
     balanceDeposit: '',
+    balanceDepositPercent: '10',
     balanceDepositTerms: '',
     financeDate: '',
     financePreApproved: false,
+    coolingOffPeriod: '5',
     waiverCoolingOff: false,
     inspectionDate: '',
     settlementDate: '',
@@ -686,7 +688,12 @@ export default function App() {
   const [adminTab, setAdminTab] = useState('qr');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminUser, setAdminUser] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showAutoSave, setShowAutoSave] = useState(false);
   const [activeBuyerTab, setActiveBuyerTab] = useState(0);
@@ -741,6 +748,7 @@ export default function App() {
   
   const dbRef = useRef(null);
   const storageRef = useRef(null);
+  const authRef = useRef(null);
   
   const logoInputRef = useRef(null);
   const newAgentPhotoInputRef = useRef(null);
@@ -791,6 +799,8 @@ export default function App() {
         const app = initializeApp(CONST_FIREBASE_CONFIG);
         dbRef.current = getFirestore(app);
         storageRef.current = getStorage(app);
+        authRef.current = getAuth(app);
+        onAuthStateChanged(authRef.current, (user) => setAdminUser(user));
 
         const qAgents = query(collection(dbRef.current, "agents"), orderBy("name"));
         const unsubAgents = onSnapshot(qAgents, (snap) => {
@@ -987,35 +997,74 @@ export default function App() {
   // HANDLERS
   // ==============================================================================
 
-  const checkAdminAccess = (callback) => {
-    if (adminUnlocked) { callback(); return; }
-    const entered = prompt("Enter admin password:");
-    if (entered === ADMIN_PASSWORD) {
-      setAdminUnlocked(true);
-      callback();
-    } else if (entered !== null) {
-      alert("Incorrect password");
+  const openAdminPanel = () => {
+    if (adminUser) {
+      setAgentModeData({ agentName: formData.agentName || '', propertyAddress: formData.propertyAddress || '' });
+      setShortLink(''); setQrGenerated(false);
+      setShowAdminPanel(true); setAdminTab('qr');
+    } else {
+      setLoginError('');
+      setLoginEmail('');
+      setLoginPassword('');
+      setShowLoginModal(true);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!loginEmail || !loginPassword) { setLoginError('Please enter email and password.'); return; }
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      await signInWithEmailAndPassword(authRef.current, loginEmail, loginPassword);
+      setShowLoginModal(false);
+      setAgentModeData({ agentName: formData.agentName || '', propertyAddress: formData.propertyAddress || '' });
+      setShortLink(''); setQrGenerated(false);
+      setShowAdminPanel(true); setAdminTab('qr');
+    } catch (err) {
+      setLoginError(err.code === 'auth/invalid-credential' ? 'Invalid email or password.' : err.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(authRef.current);
+      setShowAdminPanel(false);
+      setEditingAgent(null);
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!loginEmail) { setLoginError('Enter your email above first, then click Forgot password.'); return; }
+    try {
+      await sendPasswordResetEmail(authRef.current, loginEmail);
+      setLoginError('');
+      alert('Password reset email sent to ' + loginEmail + '. Check your inbox.');
+    } catch (err) {
+      setLoginError(err.code === 'auth/user-not-found' ? 'No account found with that email.' : err.message);
     }
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (fieldErrors[name]) {
       setFieldErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
     }
-    
-    if (name === 'purchasePrice' || name === 'initialDeposit' || name === 'balanceDeposit') {
-      const newFormData = { ...formData, [name]: formatCurrency(value) };
-      setFormData(newFormData);
-      
-      // Smart balance deposit calculation when purchase price changes
-      if (name === 'purchasePrice' && placeholders.balanceDepositPercent) {
-        const result = calculateSmartDeposit(value, placeholders.balanceDepositPercent);
-        if (result) {
-          setFormData(prev => ({ ...prev, balanceDeposit: result.amount }));
-        }
-      }
+
+    if (name === 'purchasePrice') {
+      const formatted = formatCurrency(value);
+      const priceNum = parseInt(String(value).replace(/[^0-9]/g, '')) || 0;
+      const initialDep = priceNum ? Math.round(priceNum * 0.0025).toLocaleString() : '';
+      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(formData.balanceDepositPercent) / 100)).toLocaleString() : '';
+      setFormData(prev => ({ ...prev, purchasePrice: formatted, initialDeposit: initialDep, balanceDeposit: balanceDep }));
+    } else if (name === 'balanceDepositPercent') {
+      const priceNum = parseInt(String(formData.purchasePrice).replace(/[^0-9]/g, '')) || 0;
+      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(value) / 100)).toLocaleString() : '';
+      setFormData(prev => ({ ...prev, balanceDepositPercent: value, balanceDeposit: balanceDep }));
     } else {
       setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     }
@@ -1528,12 +1577,7 @@ if (!formData.solicitorToBeAdvised) {
             </div>
             {!isPrefilled && (
               <div className="flex gap-1 sm:gap-2">
-                {/* FIXED: Admin button - "Admin" text visible on sm and up */}
-                <button type="button" onClick={() => checkAdminAccess(() => {
-                  setAgentModeData({ agentName: formData.agentName || '', propertyAddress: formData.propertyAddress || '' });
-                  setShortLink(''); setQrGenerated(false);
-                  setShowAdminPanel(true); setAdminTab('qr');
-                })} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 rounded transition text-xs sm:text-sm font-bold">
+                <button type="button" onClick={openAdminPanel} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 rounded transition text-xs sm:text-sm font-bold">
                   <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Admin</span>
                 </button>
@@ -1554,7 +1598,68 @@ if (!formData.solicitorToBeAdvised) {
       {/* Mobile Progress Bar - only visible on mobile */}
       <MobileProgressBar formData={formData} isQRForm={isQRCodeForm} />
 
-      {/* ADMIN PANEL (unchanged) */}
+      {/* LOGIN MODAL */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[70] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="bg-slate-900 p-4 flex justify-between items-center">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <Lock className="w-5 h-5 text-red-500" /> Admin Login
+              </h2>
+              <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {loginError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" /> {loginError}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                  placeholder="admin@prddapto.com.au"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                  placeholder="Enter password"
+                />
+              </div>
+              <button
+                onClick={handleLogin}
+                disabled={loginLoading}
+                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-2"
+              >
+                {loginLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                {loginLoading ? 'Signing in...' : 'Sign In'}
+              </button>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="w-full text-sm text-slate-500 hover:text-red-600 transition mt-1"
+              >
+                Forgot password?
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN PANEL */}
       {showAdminPanel && (
         <div className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -1562,9 +1667,19 @@ if (!formData.solicitorToBeAdvised) {
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <Lock className="w-5 h-5 text-red-500" /> Admin Panel
               </h2>
-              <button onClick={() => { setShowAdminPanel(false); setEditingAgent(null); }} className="text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-3">
+                {adminUser && (
+                  <>
+                    <span className="text-slate-400 text-xs hidden sm:inline">{adminUser.email}</span>
+                    <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition flex items-center gap-1" title="Sign Out">
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+                <button onClick={() => { setShowAdminPanel(false); setEditingAgent(null); }} className="text-slate-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
             
             <div className="bg-slate-100 border-b border-slate-200 flex shrink-0">
@@ -2260,46 +2375,55 @@ if (!formData.solicitorToBeAdvised) {
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
   <div className="p-4 bg-green-50 border border-green-200 rounded">
     <h3 className="font-bold text-green-800 mb-3 text-sm flex items-center gap-2">
-      <span>💵</span> Initial Deposit (Payable Immediately)
+      <span>💵</span> Initial Deposit (0.25%) Non Refundable
     </h3>
-    <InputField
-      label="Amount"
-      name="initialDeposit"
-      value={formData.initialDeposit}
-      onChange={handleChange}
-      placeholder={placeholders.initialDeposit || ''}
-      prefix="$"
-      required
-      error={!!fieldErrors.initialDeposit}
-    />
-    <p className="text-xs text-slate-500 mt-2 italic">Payable immediately upon contract date</p>
+    <p className="text-xs text-slate-500 mb-2">0.25% of purchase price</p>
+    {formData.purchasePrice ? (
+      <div className="bg-white border border-green-300 rounded px-3 py-2 text-lg font-bold text-green-800">
+        ${formData.initialDeposit}
+      </div>
+    ) : (
+      <div className="bg-white border border-slate-200 rounded px-3 py-2 text-sm text-slate-400 italic">
+        Enter purchase price above
+      </div>
+    )}
+    <p className="text-xs text-slate-500 mt-2 italic">Payable within 24 hours of offer being accepted</p>
   </div>
 
   <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-  <h3 className="font-bold text-blue-800 mb-3 text-sm flex items-center gap-2">
-    <span>💰</span> Balance Deposit (Upon Unconditional)
-  </h3>
-  <InputField
-    label="Amount"
-    name="balanceDeposit"
-    value={formData.balanceDeposit}
-    onChange={handleChange}
-    placeholder={getBalanceDepositPlaceholder()}
-    prefix="$"
-    required
-    error={!!fieldErrors.balanceDeposit}
-  />
-  <p className="text-xs text-slate-500 mt-2 mb-3 italic">
-    {placeholders.balanceDepositTerms || 'Payable when contract becomes unconditional'}
-  </p>
-  <InputField
-    label="Terms"
-    name="balanceDepositTerms"
-    value={formData.balanceDepositTerms}
-    onChange={handleChange}
-    placeholder="Special conditions (if any)"
-  />
-</div>
+    <h3 className="font-bold text-blue-800 mb-3 text-sm flex items-center gap-2">
+      <span>💰</span> Balance Deposit
+    </h3>
+    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Deposit Percentage</label>
+    <select
+      name="balanceDepositPercent"
+      value={formData.balanceDepositPercent}
+      onChange={handleChange}
+      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors mb-3"
+    >
+      <option value="5">5% of Purchase Price</option>
+      <option value="10">10% of Purchase Price</option>
+    </select>
+    {formData.purchasePrice ? (
+      <div className="bg-white border border-blue-300 rounded px-3 py-2 text-lg font-bold text-blue-800">
+        ${formData.balanceDeposit}
+      </div>
+    ) : (
+      <div className="bg-white border border-slate-200 rounded px-3 py-2 text-sm text-slate-400 italic">
+        Enter purchase price above
+      </div>
+    )}
+    <p className="text-xs text-slate-500 mt-2 mb-3 italic">
+      Payable before expiration of Cooling Off Period
+    </p>
+    <InputField
+      label="Terms"
+      name="balanceDepositTerms"
+      value={formData.balanceDepositTerms}
+      onChange={handleChange}
+      placeholder="Special conditions (if any)"
+    />
+  </div>
 </div>
 
 {(formData.initialDeposit || formData.balanceDeposit) && (
@@ -2324,6 +2448,16 @@ if (!formData.solicitorToBeAdvised) {
               <h3 className="font-bold text-slate-700 mb-3 text-sm">Finance</h3>
               <InputField label="Finance Date" name="financeDate" value={formData.financeDate} onChange={handleChange} placeholder={placeholders.financeDate || ''} className="mb-3" />
               <Checkbox label="Loan Pre-Approved?" name="financePreApproved" checked={formData.financePreApproved} onChange={handleChange} />
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block mt-3">Cooling Off Period</label>
+              <select
+                name="coolingOffPeriod"
+                value={formData.coolingOffPeriod}
+                onChange={handleChange}
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors mb-3"
+              >
+                <option value="5">5-Day (Business Days)</option>
+                <option value="10">10-Day (Business Days)</option>
+              </select>
               <Checkbox label="Waiver of Cooling Off Period" name="waiverCoolingOff" checked={formData.waiverCoolingOff} onChange={handleChange} />
             </div>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded">
@@ -2348,10 +2482,11 @@ if (!formData.solicitorToBeAdvised) {
     <div>
       <h3 className="font-bold text-amber-900 text-lg mb-2 print:text-slate-800">Important Disclaimer</h3>
       <p className="text-sm text-amber-800 leading-relaxed print:text-slate-700">
-        This Letter of Offer is <strong>non-binding</strong> and provided for negotiation and contract-preparation purposes only. 
-        It does not constitute a legally enforceable agreement, nor does it oblige either party to proceed with the purchase or 
-        sale of the property. A binding commitment will only arise upon execution of a formal Contract of Sale, signed and 
-        dated by both the Buyer and the Seller.
+        The signing of this document does not create a legally binding agreement. It neither obligates the Vendor to sell
+        the property nor the purchaser to buy the property and the purchaser may withdraw this offer at any time prior to
+        formal exchange of Contracts for Sale. As such the property will not be taken off the market until such times as
+        contracts have exchanged. The purchaser should make every endeavour to expedite the exchange of contracts which is
+        the only way to guarantee the purchase.
       </p>
     </div>
   </div>
