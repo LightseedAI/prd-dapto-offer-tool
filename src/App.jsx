@@ -19,7 +19,7 @@ console.table({
 });
 
 const CONST_GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
-const CONST_WEBHOOK_URL = "YOUR_WEBHOOK_URL"; // TODO: Set up webhook for PRD Dapto
+const CONST_WEBHOOK_URL = "https://n8n.srv971972.hstgr.cloud/webhook/prd-dapto-offer-form";
 
 const CONST_FIREBASE_CONFIG = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
