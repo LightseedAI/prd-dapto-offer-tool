@@ -746,7 +746,8 @@ export default function App() {
   const [newAgentMobile, setNewAgentMobile] = useState('');
   const [newAgentTitle, setNewAgentTitle] = useState('');
   const [newAgentPhoto, setNewAgentPhoto] = useState('');
-  
+  const [newAgentTestAgent, setNewAgentTestAgent] = useState(false);
+
   const [tempLogoUrl, setTempLogoUrl] = useState('');
   const [tempPlaceholders, setTempPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -762,6 +763,7 @@ export default function App() {
   const [editAgentMobile, setEditAgentMobile] = useState('');
   const [editAgentTitle, setEditAgentTitle] = useState('');
   const [editAgentPhoto, setEditAgentPhoto] = useState('');
+  const [editAgentTestAgent, setEditAgentTestAgent] = useState(false);
 
   const [agentModeData, setAgentModeData] = useState({ agentName: '', propertyAddress: '' });
   const [shortLink, setShortLink] = useState('');
@@ -776,6 +778,7 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const propertyId = urlParams.get('id');
   const isQRCodeForm = !!propertyId;
+  const isDevMode = urlParams.get('dev') === 'true';
   
   const addressInputRef = useRef(null);
   const agentAddressInputRef = useRef(null);
@@ -1306,9 +1309,10 @@ if (!formData.solicitorToBeAdvised) {
     
     const payload = {
       ...formData,
-      logoUrl: logoUrl, 
+      logoUrl: logoUrl,
       agentMobile: currentAgent?.mobile || formData.agentMobile || '',
       agentTitle: currentAgent?.title || formData.agentTitle || '',
+      testAgent: currentAgent?.testAgent || false,
       totalDeposit: totalDeposit.toLocaleString(),
       initialDeposit: formData.initialDeposit,
       balanceDeposit: formData.balanceDeposit,
@@ -1443,9 +1447,10 @@ if (!formData.solicitorToBeAdvised) {
         email: newAgentEmail,
         mobile: newAgentMobile,
         title: newAgentTitle,
-        photo: finalPhotoUrl
+        photo: finalPhotoUrl,
+        testAgent: newAgentTestAgent
       });
-      setNewAgentName(''); setNewAgentEmail(''); setNewAgentMobile(''); setNewAgentTitle(''); setNewAgentPhoto(''); setPhotoFile(null);
+      setNewAgentName(''); setNewAgentEmail(''); setNewAgentMobile(''); setNewAgentTitle(''); setNewAgentPhoto(''); setPhotoFile(null); setNewAgentTestAgent(false);
       alert("Agent added successfully!");
     } catch (e) { console.error(e); alert("Add failed."); } finally { setIsUploadingAgentPhoto(false); }
   };
@@ -1457,6 +1462,7 @@ if (!formData.solicitorToBeAdvised) {
     setEditAgentMobile(agent.mobile || '');
     setEditAgentTitle(agent.title || '');
     setEditAgentPhoto(agent.photo || '');
+    setEditAgentTestAgent(agent.testAgent || false);
     setEditPhotoFile(null);
   };
 
@@ -1475,11 +1481,12 @@ if (!formData.solicitorToBeAdvised) {
         finalPhotoUrl = await getDownloadURL(snapshot.ref);
       }
       await updateDoc(doc(dbRef.current, "agents", editingAgent), {
-        name: editAgentName, 
-        email: editAgentEmail, 
+        name: editAgentName,
+        email: editAgentEmail,
         mobile: editAgentMobile,
         title: editAgentTitle,
-        photo: finalPhotoUrl
+        photo: finalPhotoUrl,
+        testAgent: editAgentTestAgent
       });
       setEditingAgent(null); setEditPhotoFile(null);
       alert("Agent updated!");
@@ -1599,6 +1606,9 @@ if (!formData.solicitorToBeAdvised) {
   // ==============================================================================
   // RENDER
   // ==============================================================================
+
+  // Filter test agents from buyer-facing dropdown (visible in dev mode or admin)
+  const visibleAgents = agentsList.filter(a => !a.testAgent || isDevMode);
 
   return (
     <div className="min-h-screen bg-slate-100 print:bg-white text-slate-800 font-sans relative">
@@ -1944,6 +1954,10 @@ if (!formData.solicitorToBeAdvised) {
                                   {isUploadingAgentPhoto ? 'Uploading...' : 'Change Photo'}
                                 </button>
                               </div>
+                              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                <input type="checkbox" checked={editAgentTestAgent} onChange={(e) => setEditAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
+                                Test Agent
+                              </label>
                               <div className="flex gap-2">
                                 <button onClick={handleSaveAgent} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Save</button>
                                 <button onClick={handleCancelEdit} className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-700 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1"><X className="w-3 h-3" /> Cancel</button>
@@ -1953,7 +1967,7 @@ if (!formData.solicitorToBeAdvised) {
                             <div className="flex items-center gap-3 p-3 hover:bg-slate-50">
                               {a.photo ? (<img src={a.photo} alt={a.name} className="w-10 h-10 rounded-full object-cover" />) : (<div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><User className="w-5 h-5" /></div>)}
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-slate-800 truncate">{a.name}</div>
+                                <div className="text-sm font-bold text-slate-800 truncate">{a.name} {a.testAgent && <span className="text-xs font-normal text-orange-500 ml-1">(Test)</span>}</div>
                                 <div className="text-xs text-slate-500 truncate">{a.title || 'Agent'}</div>
                               </div>
                               {a.id && (
@@ -2001,6 +2015,10 @@ if (!formData.solicitorToBeAdvised) {
                           {isUploadingAgentPhoto ? 'Uploading...' : newAgentPhoto ? 'Change Photo' : 'Upload Photo (Optional)'}
                         </button>
                       </div>
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="checkbox" checked={newAgentTestAgent} onChange={(e) => setNewAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
+                        Test Agent <span className="text-xs text-slate-400">(hidden from buyers, for dev testing only)</span>
+                      </label>
                       <button onClick={handleAddAgent} disabled={!newAgentName || !newAgentEmail} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white px-4 py-2 rounded text-sm font-bold flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Agent</button>
                     </div>
                   </div>
@@ -2092,7 +2110,7 @@ if (!formData.solicitorToBeAdvised) {
                 value={formData.agentName}
               >
                 <option value="">-- Please Select Agent --</option>
-                {agentsList.map((a, i) => (<option key={a.id || i} value={a.name}>{a.name}</option>))}
+                {visibleAgents.map((a, i) => (<option key={a.id || i} value={a.name}>{a.name}</option>))}
               </select>
             </div>
           )}
