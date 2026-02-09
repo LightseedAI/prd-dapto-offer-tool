@@ -148,18 +148,21 @@ const getRequiredFields = () => [
 
 const calculateProgress = (formData) => {
   const buyers = formData.buyers || [];
-  
+
   let completed = 0;
-  let total = 7; // Base fields: agent, property, price, 2 deposits, 2 solicitor
-  
+  let total = 3; // Base fields: agent, property, price
+
   // Check main fields
   if (formData.agentName) completed++;
   if (formData.propertyAddress) completed++;
   if (formData.purchasePrice) completed++;
-  if (formData.initialDeposit) completed++;
-  if (formData.balanceDeposit) completed++;
-  if (formData.solicitorEmail) completed++;
-  if (formData.solicitorPhone) completed++;
+
+  // Solicitor fields only count if not "to be advised"
+  if (!formData.solicitorToBeAdvised) {
+    total += 2;
+    if (formData.solicitorEmail) completed++;
+    if (formData.solicitorPhone) completed++;
+  }
   
   // Check each buyer (add to total dynamically)
   buyers.forEach(buyer => {
