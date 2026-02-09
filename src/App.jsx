@@ -1740,7 +1740,7 @@ if (!formData.solicitorToBeAdvised) {
                 <QrCode className="w-4 h-4" /> QR Generator
               </button>
               <button onClick={() => setAdminTab('settings')} className={`flex-1 px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 transition ${adminTab === 'settings' ? 'bg-white text-red-600 border-b-2 border-red-600' : 'text-slate-500 hover:text-slate-700'}`}>
-                <Settings className="w-4 h-4" /> Settings
+                <Database className="w-4 h-4" /> Defaults
               </button>
               <button onClick={() => setAdminTab('team')} className={`flex-1 px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 transition ${adminTab === 'team' ? 'bg-white text-red-600 border-b-2 border-red-600' : 'text-slate-500 hover:text-slate-700'}`}>
                 <Users className="w-4 h-4" /> Team
@@ -1841,18 +1841,21 @@ if (!formData.solicitorToBeAdvised) {
                 </div>
               )}
 
-              {/* SETTINGS TAB (unchanged, but with enhanced placeholders) */}
+              {/* DEFAULTS TAB */}
               {adminTab === 'settings' && (
                 <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">These are the <strong>global defaults</strong> used when no per-property customisation is set. You can override these for individual properties in the <strong>QR Generator</strong> tab.</p>
+                  </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Logo</h3>
+                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Default Logo</h3>
                     <div className="flex items-start gap-4 mb-4">
                       <div className="w-32 h-16 bg-slate-100 border-2 border-red-500 rounded flex items-center justify-center p-2">
                         {tempLogoUrl && <img src={tempLogoUrl || defaultLogoUrl} alt="Current Logo" className="max-h-full max-w-full object-contain" />}
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-700 mb-1">Currently Selected</p>
-                        <p className="text-xs text-slate-500">Click a logo below to select it, then Save Settings.</p>
+                        <p className="text-xs text-slate-500">Click a logo below to select it, then Save.</p>
                       </div>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">
@@ -1896,11 +1899,11 @@ if (!formData.solicitorToBeAdvised) {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Type className="w-4 h-4" /> Form Placeholders</h3>
-                    <p className="text-xs text-slate-500 mb-3">Leave empty for no placeholder.</p>
+                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Type className="w-4 h-4" /> Default Placeholders</h3>
+                    <p className="text-xs text-slate-500 mb-3">These values pre-fill the form fields for buyers. Leave empty for no placeholder.</p>
                     <PlaceholderFields values={tempPlaceholders} onChange={setTempPlaceholders} />
                   </div>
-                  <button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold">Save Settings</button>
+                  <button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold">Save Defaults</button>
                 </div>
               )}
 
