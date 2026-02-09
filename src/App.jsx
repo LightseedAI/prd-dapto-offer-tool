@@ -284,6 +284,66 @@ const getSectionStatus = (formData, section) => {
 // COMPONENTS
 // ==============================================================================
 
+// Shared Placeholder Fields component (used in both Settings tab and QR Customise section)
+const PlaceholderFields = ({ values, onChange }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {/* Purchase Price */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Purchase Price (Default)</label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+        <input type="text" value={values.purchasePrice || ''} onChange={(e) => onChange(p => ({ ...p, purchasePrice: formatCurrency(e.target.value) }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 850,000" />
+      </div>
+    </div>
+    {/* Initial Deposit */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Initial Deposit (Fixed Amount)</label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+        <input type="text" value={values.initialDeposit || ''} onChange={(e) => onChange(p => ({ ...p, initialDeposit: formatCurrency(e.target.value) }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 5,000" />
+      </div>
+      <label className="text-xs text-slate-500 block mb-1 mt-2">Initial Deposit Terms</label>
+      <input type="text" value={values.initialDepositTerms || ''} onChange={(e) => onChange(p => ({ ...p, initialDepositTerms: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Payable immediately upon contract date" />
+    </div>
+    {/* Balance Deposit */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Balance Deposit Amount OR Percentage</label>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+          <input type="text" value={values.balanceDepositAmount || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositAmount: formatCurrency(e.target.value), balanceDepositPercent: '' }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 75,000" />
+        </div>
+        <div className="relative w-24">
+          <input type="number" value={values.balanceDepositPercent || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositPercent: e.target.value, balanceDepositAmount: '' }))} className="w-full border border-slate-300 rounded p-2 pr-6 text-sm" placeholder="e.g. 10" min="0" max="100" />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+        </div>
+      </div>
+      <label className="text-xs text-slate-500 block mb-1 mt-2">Balance Deposit Terms</label>
+      <input type="text" value={values.balanceDepositTerms || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositTerms: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Payable when contract becomes unconditional" />
+    </div>
+    {/* Finance Date */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Finance Date (Default)</label>
+      <input type="text" value={values.financeDate || ''} onChange={(e) => onChange(p => ({ ...p, financeDate: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. 14 days from contract date" />
+    </div>
+    {/* Inspection Date */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Inspection Date (Default)</label>
+      <input type="text" value={values.inspectionDate || ''} onChange={(e) => onChange(p => ({ ...p, inspectionDate: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. 14 days from contract date" />
+    </div>
+    {/* Settlement Date */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Settlement Date (Default)</label>
+      <input type="text" value={values.settlementDate || ''} onChange={(e) => onChange(p => ({ ...p, settlementDate: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. 30 days from contract date" />
+    </div>
+    {/* Special Conditions */}
+    <div>
+      <label className="text-xs text-slate-500 block mb-1">Special Conditions (Default)</label>
+      <textarea value={values.specialConditions || ''} onChange={(e) => onChange(p => ({ ...p, specialConditions: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Subject to building and pest inspection" rows="3" />
+    </div>
+  </div>
+);
+
 // Mobile Progress Bar Component (horizontal, top of screen)
 const MobileProgressBar = ({ formData, isQRForm = false }) => {
   const progress = calculateProgress(formData);
@@ -720,7 +780,6 @@ export default function App() {
   
   const [tempLogoUrl, setTempLogoUrl] = useState('');
   const [tempPlaceholders, setTempPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
-  const [settingsConfigured, setSettingsConfigured] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingAgentPhoto, setIsUploadingAgentPhoto] = useState(false);
   const [newLogoName, setNewLogoName] = useState('');
@@ -740,6 +799,10 @@ export default function App() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [qrGenerated, setQrGenerated] = useState(false);
   const [agentModeReady, setAgentModeReady] = useState(false);
+
+  const [qrCustomiseOpen, setQrCustomiseOpen] = useState(false);
+  const [qrLogoUrl, setQrLogoUrl] = useState('');
+  const [qrPlaceholders, setQrPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
   
   const urlParams = new URLSearchParams(window.location.search);
   const propertyId = urlParams.get('id');
@@ -759,6 +822,7 @@ export default function App() {
   const editAgentPhotoInputRef = useRef(null);
   const formContainerRef = useRef(null);
   const autoSaveTimeoutRef = useRef(null);
+  const propertySettingsApplied = useRef(false);
 
   // ==============================================================================
   // AUTO-SAVE FUNCTIONALITY
@@ -843,16 +907,18 @@ export default function App() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.defaultLogoUrl) setDefaultLogoUrl(data.defaultLogoUrl);
-            if (data.logoUrl) {
-              setLogoUrl(data.logoUrl);
-              setTempLogoUrl(data.logoUrl);
+            // Only apply global logo/placeholders if no per-property override is active
+            if (!propertySettingsApplied.current) {
+              if (data.logoUrl) setLogoUrl(data.logoUrl);
+              if (data.placeholders) {
+                setPlaceholders({ ...DEFAULT_PLACEHOLDERS, ...data.placeholders });
+              }
             }
+            // Always update temp values (for Settings tab editing)
+            if (data.logoUrl) setTempLogoUrl(data.logoUrl);
             if (data.placeholders) {
-              const newPlaceholders = { ...DEFAULT_PLACEHOLDERS, ...data.placeholders };
-              setPlaceholders(newPlaceholders);
-              setTempPlaceholders(newPlaceholders);
+              setTempPlaceholders({ ...DEFAULT_PLACEHOLDERS, ...data.placeholders });
             }
-            if (data.settingsConfigured) setSettingsConfigured(true);
           } else {
             await setDoc(docRef, {
               defaultLogoUrl: ORIGINAL_DEFAULT_LOGO,
@@ -860,7 +926,9 @@ export default function App() {
               placeholders: DEFAULT_PLACEHOLDERS
             });
             setDefaultLogoUrl(ORIGINAL_DEFAULT_LOGO);
-            setLogoUrl(ORIGINAL_DEFAULT_LOGO);
+            if (!propertySettingsApplied.current) {
+              setLogoUrl(ORIGINAL_DEFAULT_LOGO);
+            }
             setTempLogoUrl(ORIGINAL_DEFAULT_LOGO);
           }
         });
@@ -968,6 +1036,15 @@ export default function App() {
             const data = snap.data();
             foundAgentName = data.agent || '';
             foundAddress = data.address || '';
+            // Load per-property settings if present
+            if (data.logoUrl) {
+              setLogoUrl(data.logoUrl);
+              propertySettingsApplied.current = true;
+            }
+            if (data.placeholders) {
+              setPlaceholders({ ...DEFAULT_PLACEHOLDERS, ...data.placeholders });
+              propertySettingsApplied.current = true;
+            }
           }
         } catch (e) { console.error(e); }
       } 
@@ -1004,6 +1081,7 @@ export default function App() {
     if (adminUser) {
       setAgentModeData({ agentName: formData.agentName || '', propertyAddress: formData.propertyAddress || '' });
       setShortLink(''); setQrGenerated(false);
+      setQrLogoUrl(logoUrl || tempLogoUrl); setQrPlaceholders({ ...placeholders }); setQrCustomiseOpen(false);
       setShowAdminPanel(true); setAdminTab('qr');
     } else {
       setLoginError('');
@@ -1022,6 +1100,7 @@ export default function App() {
       setShowLoginModal(false);
       setAgentModeData({ agentName: formData.agentName || '', propertyAddress: formData.propertyAddress || '' });
       setShortLink(''); setQrGenerated(false);
+      setQrLogoUrl(logoUrl || tempLogoUrl); setQrPlaceholders({ ...placeholders }); setQrCustomiseOpen(false);
       setShowAdminPanel(true); setAdminTab('qr');
     } catch (err) {
       setLoginError(err.code === 'auth/invalid-credential' ? 'Invalid email or password.' : err.message);
@@ -1298,6 +1377,8 @@ if (!formData.solicitorToBeAdvised) {
         await setDoc(doc(dbRef.current, "shortlinks", uniqueId), {
           agent: agentModeData.agentName,
           address: agentModeData.propertyAddress,
+          logoUrl: qrLogoUrl,
+          placeholders: qrPlaceholders,
           createdAt: new Date().toISOString()
         });
         finalUrl = `${window.location.origin}${window.location.pathname}?id=${uniqueId}`;
@@ -1316,10 +1397,8 @@ if (!formData.solicitorToBeAdvised) {
     try {
       await setDoc(doc(dbRef.current, "config", "settings"), {
         logoUrl: tempLogoUrl,
-        placeholders: tempPlaceholders,
-        settingsConfigured: true
+        placeholders: tempPlaceholders
       }, { merge: true });
-      setSettingsConfigured(true);
       alert("Settings Saved!");
     } catch (e) { alert("Save failed."); console.error(e); }
   };
@@ -1703,16 +1782,6 @@ if (!formData.solicitorToBeAdvised) {
               {/* QR TAB */}
               {adminTab === 'qr' && (
                 <div>
-                {!settingsConfigured && (
-                  <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-amber-800">Set up your form defaults first</p>
-                      <p className="text-xs text-amber-700 mt-1">Configure your logo, placeholder values, and default dates before generating your first QR code.</p>
-                      <button onClick={() => setAdminTab('settings')} className="mt-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded text-xs font-bold">Go to Settings</button>
-                    </div>
-                  </div>
-                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <p className="text-sm text-slate-600">Generate a QR code link for your open home.</p>
@@ -1753,6 +1822,51 @@ if (!formData.solicitorToBeAdvised) {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Collapsible Customise Form section */}
+                <div className="mt-6 border border-slate-200 rounded-lg overflow-hidden">
+                  <button onClick={() => setQrCustomiseOpen(!qrCustomiseOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+                    <span className="text-sm font-bold text-slate-700 flex items-center gap-2"><Settings className="w-4 h-4" /> Customise Form</span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${qrCustomiseOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {qrCustomiseOpen && (
+                    <div className="p-4 space-y-5 border-t border-slate-200">
+                      <p className="text-xs text-slate-500">Override global defaults for this property. Leave fields empty to use global defaults.</p>
+
+                      {/* Logo Picker */}
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Logo</h4>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-24 h-12 bg-slate-100 border-2 border-red-500 rounded flex items-center justify-center p-1">
+                            {qrLogoUrl && <img src={qrLogoUrl} alt="Selected" className="max-h-full max-w-full object-contain" />}
+                          </div>
+                          <p className="text-xs text-slate-500">Click a logo below to select it.</p>
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-32 overflow-y-auto">
+                          {logoGallery.map((logo) => (
+                            <div key={logo.id} className={`relative cursor-pointer rounded border-2 p-1 transition-all ${qrLogoUrl === logo.url ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-slate-400 bg-white'}`} onClick={() => setQrLogoUrl(logo.url)}>
+                              <div className="h-8 flex items-center justify-center">
+                                <img src={logo.url} alt={logo.name} className="max-h-full max-w-full object-contain" />
+                              </div>
+                              <p className="text-[10px] text-slate-500 truncate text-center mt-0.5">{logo.name}</p>
+                              {qrLogoUrl === logo.url && (
+                                <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
+                                  <Check className="w-2 h-2 text-white" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Placeholder Fields */}
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><Type className="w-3 h-3" /> Form Placeholders</h4>
+                        <PlaceholderFields values={qrPlaceholders} onChange={setQrPlaceholders} />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 </div>
               )}
@@ -1814,130 +1928,7 @@ if (!formData.solicitorToBeAdvised) {
                   <div>
                     <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Type className="w-4 h-4" /> Form Placeholders</h3>
                     <p className="text-xs text-slate-500 mb-3">Leave empty for no placeholder.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {/* Purchase Price */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Purchase Price (Default)</label>
-  <div className="relative">
-    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-    <input 
-      type="text" 
-      value={tempPlaceholders.purchasePrice || ''} 
-      onChange={(e) => setTempPlaceholders(p => ({ ...p, purchasePrice: formatCurrency(e.target.value) }))} 
-      className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" 
-      placeholder="e.g. 850,000"
-    />
-  </div>
-</div>
-
-{/* Initial Deposit */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Initial Deposit (Fixed Amount)</label>
-  <div className="relative">
-    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-    <input 
-      type="text" 
-      value={tempPlaceholders.initialDeposit || ''} 
-      onChange={(e) => setTempPlaceholders(p => ({ ...p, initialDeposit: formatCurrency(e.target.value) }))} 
-      className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" 
-      placeholder="e.g. 5,000"
-    />
-  </div>
-  <label className="text-xs text-slate-500 block mb-1 mt-2">Initial Deposit Terms</label>
-  <input 
-    type="text" 
-    value={tempPlaceholders.initialDepositTerms || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, initialDepositTerms: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. Payable immediately upon contract date"
-  />
-</div>
-
-{/* Balance Deposit */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Balance Deposit Amount OR Percentage</label>
-  <div className="flex gap-2">
-    <div className="relative flex-1">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-      <input 
-        type="text" 
-        value={tempPlaceholders.balanceDepositAmount || ''} 
-        onChange={(e) => setTempPlaceholders(p => ({ ...p, balanceDepositAmount: formatCurrency(e.target.value), balanceDepositPercent: '' }))} 
-        className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" 
-        placeholder="e.g. 75,000"
-      />
-    </div>
-    <div className="relative w-24">
-      <input 
-        type="number" 
-        value={tempPlaceholders.balanceDepositPercent || ''} 
-        onChange={(e) => setTempPlaceholders(p => ({ ...p, balanceDepositPercent: e.target.value, balanceDepositAmount: '' }))} 
-        className="w-full border border-slate-300 rounded p-2 pr-6 text-sm" 
-        placeholder="e.g. 10"
-        min="0" 
-        max="100"
-      />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
-    </div>
-  </div>
-  <label className="text-xs text-slate-500 block mb-1 mt-2">Balance Deposit Terms</label>
-  <input 
-    type="text" 
-    value={tempPlaceholders.balanceDepositTerms || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, balanceDepositTerms: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. Payable when contract becomes unconditional"
-  />
-</div>
-
-{/* Finance Date */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Finance Date (Default)</label>
-  <input 
-    type="text" 
-    value={tempPlaceholders.financeDate || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, financeDate: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. 14 days from contract date"
-  />
-</div>
-
-{/* Inspection Date */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Inspection Date (Default)</label>
-  <input 
-    type="text" 
-    value={tempPlaceholders.inspectionDate || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, inspectionDate: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. 14 days from contract date"
-  />
-</div>
-
-{/* Settlement Date */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Settlement Date (Default)</label>
-  <input 
-    type="text" 
-    value={tempPlaceholders.settlementDate || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, settlementDate: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. 30 days from contract date"
-  />
-</div>
-
-{/* Special Conditions */}
-<div>
-  <label className="text-xs text-slate-500 block mb-1">Special Conditions (Default)</label>
-  <textarea 
-    value={tempPlaceholders.specialConditions || ''} 
-    onChange={(e) => setTempPlaceholders(p => ({ ...p, specialConditions: e.target.value }))} 
-    className="w-full border border-slate-300 rounded p-2 text-sm" 
-    placeholder="e.g. Subject to building and pest inspection"
-    rows="3"
-  />
-</div>
-                    </div>
+                    <PlaceholderFields values={tempPlaceholders} onChange={setTempPlaceholders} />
                   </div>
                   <button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold">Save Settings</button>
                 </div>
