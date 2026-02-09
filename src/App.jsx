@@ -35,11 +35,6 @@ const ORIGINAL_DEFAULT_LOGO = "";
 
 const DEFAULT_PLACEHOLDERS = {
   purchasePrice: '',
-  initialDeposit: '',
-  initialDepositTerms: '',
-  balanceDepositAmount: '',
-  balanceDepositPercent: '',
-  balanceDepositTerms: '',
   financeDate: '',
   inspectionDate: '',
   settlementDate: '',
@@ -295,32 +290,6 @@ const PlaceholderFields = ({ values, onChange }) => (
         <input type="text" value={values.purchasePrice || ''} onChange={(e) => onChange(p => ({ ...p, purchasePrice: formatCurrency(e.target.value) }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 850,000" />
       </div>
     </div>
-    {/* Initial Deposit */}
-    <div>
-      <label className="text-xs text-slate-500 block mb-1">Initial Deposit (Fixed Amount)</label>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-        <input type="text" value={values.initialDeposit || ''} onChange={(e) => onChange(p => ({ ...p, initialDeposit: formatCurrency(e.target.value) }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 5,000" />
-      </div>
-      <label className="text-xs text-slate-500 block mb-1 mt-2">Initial Deposit Terms</label>
-      <input type="text" value={values.initialDepositTerms || ''} onChange={(e) => onChange(p => ({ ...p, initialDepositTerms: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Payable immediately upon contract date" />
-    </div>
-    {/* Balance Deposit */}
-    <div>
-      <label className="text-xs text-slate-500 block mb-1">Balance Deposit Amount OR Percentage</label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-          <input type="text" value={values.balanceDepositAmount || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositAmount: formatCurrency(e.target.value), balanceDepositPercent: '' }))} className="w-full border border-slate-300 rounded p-2 pl-7 text-sm" placeholder="e.g. 75,000" />
-        </div>
-        <div className="relative w-24">
-          <input type="number" value={values.balanceDepositPercent || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositPercent: e.target.value, balanceDepositAmount: '' }))} className="w-full border border-slate-300 rounded p-2 pr-6 text-sm" placeholder="e.g. 10" min="0" max="100" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
-        </div>
-      </div>
-      <label className="text-xs text-slate-500 block mb-1 mt-2">Balance Deposit Terms</label>
-      <input type="text" value={values.balanceDepositTerms || ''} onChange={(e) => onChange(p => ({ ...p, balanceDepositTerms: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Payable when contract becomes unconditional" />
-    </div>
     {/* Finance Date */}
     <div>
       <label className="text-xs text-slate-500 block mb-1">Finance Date (Default)</label>
@@ -337,7 +306,7 @@ const PlaceholderFields = ({ values, onChange }) => (
       <input type="text" value={values.settlementDate || ''} onChange={(e) => onChange(p => ({ ...p, settlementDate: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. 30 days from contract date" />
     </div>
     {/* Special Conditions */}
-    <div>
+    <div className="md:col-span-2">
       <label className="text-xs text-slate-500 block mb-1">Special Conditions (Default)</label>
       <textarea value={values.specialConditions || ''} onChange={(e) => onChange(p => ({ ...p, specialConditions: e.target.value }))} className="w-full border border-slate-300 rounded p-2 text-sm" placeholder="e.g. Subject to building and pest inspection" rows="3" />
     </div>
@@ -1555,7 +1524,7 @@ if (!formData.solicitorToBeAdvised) {
         purchasePrice: '',
         initialDeposit: '',
         balanceDeposit: '',
-        balanceDepositTerms: placeholders.balanceDepositTerms || '',
+        balanceDepositTerms: '',
         financeDate: '',
         financePreApproved: false,
         waiverCoolingOff: false,
