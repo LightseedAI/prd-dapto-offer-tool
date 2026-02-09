@@ -720,6 +720,7 @@ export default function App() {
   
   const [tempLogoUrl, setTempLogoUrl] = useState('');
   const [tempPlaceholders, setTempPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
+  const [settingsConfigured, setSettingsConfigured] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingAgentPhoto, setIsUploadingAgentPhoto] = useState(false);
   const [newLogoName, setNewLogoName] = useState('');
@@ -850,9 +851,8 @@ export default function App() {
               const newPlaceholders = { ...DEFAULT_PLACEHOLDERS, ...data.placeholders };
               setPlaceholders(newPlaceholders);
               setTempPlaceholders(newPlaceholders);
-              
-              
             }
+            if (data.settingsConfigured) setSettingsConfigured(true);
           } else {
             await setDoc(docRef, {
               defaultLogoUrl: ORIGINAL_DEFAULT_LOGO,
@@ -1316,8 +1316,10 @@ if (!formData.solicitorToBeAdvised) {
     try {
       await setDoc(doc(dbRef.current, "config", "settings"), {
         logoUrl: tempLogoUrl,
-        placeholders: tempPlaceholders
+        placeholders: tempPlaceholders,
+        settingsConfigured: true
       }, { merge: true });
+      setSettingsConfigured(true);
       alert("Settings Saved!");
     } catch (e) { alert("Save failed."); console.error(e); }
   };
@@ -1700,6 +1702,17 @@ if (!formData.solicitorToBeAdvised) {
             <div className="p-6 overflow-y-auto flex-1">
               {/* QR TAB */}
               {adminTab === 'qr' && (
+                <div>
+                {!settingsConfigured && (
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-amber-800">Set up your form defaults first</p>
+                      <p className="text-xs text-amber-700 mt-1">Configure your logo, placeholder values, and default dates before generating your first QR code.</p>
+                      <button onClick={() => setAdminTab('settings')} className="mt-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded text-xs font-bold">Go to Settings</button>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <p className="text-sm text-slate-600">Generate a QR code link for your open home.</p>
@@ -1740,6 +1753,7 @@ if (!formData.solicitorToBeAdvised) {
                       </div>
                     )}
                   </div>
+                </div>
                 </div>
               )}
 
