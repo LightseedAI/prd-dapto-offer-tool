@@ -1798,6 +1798,52 @@ if (!formData.solicitorToBeAdvised) {
                       </label>
                       <input ref={agentAddressInputRef} type="text" className="w-full border border-slate-300 rounded p-2 text-sm" placeholder={agentModeReady ? "Start typing address..." : "Loading..."} value={agentModeData.propertyAddress} onChange={(e) => { setAgentModeData(p => ({ ...p, propertyAddress: e.target.value })); setQrGenerated(false); }} />
                     </div>
+
+                    {/* Collapsible Customise Form section */}
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <button onClick={() => setQrCustomiseOpen(!qrCustomiseOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+                        <span className="text-sm font-bold text-slate-700 flex items-center gap-2"><Settings className="w-4 h-4" /> Customise Form</span>
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${qrCustomiseOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {qrCustomiseOpen && (
+                        <div className="p-4 space-y-5 border-t border-slate-200">
+                          <p className="text-xs text-slate-500">Override global defaults for this property. Leave fields empty to use global defaults.</p>
+
+                          {/* Logo Picker */}
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Logo</h4>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-24 h-12 bg-slate-100 border-2 border-red-500 rounded flex items-center justify-center p-1">
+                                {qrLogoUrl && <img src={qrLogoUrl} alt="Selected" className="max-h-full max-w-full object-contain" />}
+                              </div>
+                              <p className="text-xs text-slate-500">Click a logo below to select it.</p>
+                            </div>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-32 overflow-y-auto">
+                              {logoGallery.map((logo) => (
+                                <div key={logo.id} className={`relative cursor-pointer rounded border-2 p-1 transition-all ${qrLogoUrl === logo.url ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-slate-400 bg-white'}`} onClick={() => setQrLogoUrl(logo.url)}>
+                                  <div className="h-8 flex items-center justify-center">
+                                    <img src={logo.url} alt={logo.name} className="max-h-full max-w-full object-contain" />
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 truncate text-center mt-0.5">{logo.name}</p>
+                                  {qrLogoUrl === logo.url && (
+                                    <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
+                                      <Check className="w-2 h-2 text-white" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Placeholder Fields */}
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><Type className="w-3 h-3" /> Form Placeholders</h4>
+                            <PlaceholderFields values={qrPlaceholders} onChange={setQrPlaceholders} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <button onClick={generateSmartLink} disabled={!agentModeData.agentName || !agentModeData.propertyAddress || isGeneratingLink} className="w-full bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white py-3 rounded text-sm font-bold mt-2 flex items-center justify-center gap-2">
                       {isGeneratingLink ? <Loader className="w-4 h-4 animate-spin" /> : <><QrCode className="w-4 h-4" /> Generate QR</>}
                     </button>
@@ -1822,51 +1868,6 @@ if (!formData.solicitorToBeAdvised) {
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Collapsible Customise Form section */}
-                <div className="mt-6 border border-slate-200 rounded-lg overflow-hidden">
-                  <button onClick={() => setQrCustomiseOpen(!qrCustomiseOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
-                    <span className="text-sm font-bold text-slate-700 flex items-center gap-2"><Settings className="w-4 h-4" /> Customise Form</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${qrCustomiseOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {qrCustomiseOpen && (
-                    <div className="p-4 space-y-5 border-t border-slate-200">
-                      <p className="text-xs text-slate-500">Override global defaults for this property. Leave fields empty to use global defaults.</p>
-
-                      {/* Logo Picker */}
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Logo</h4>
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-24 h-12 bg-slate-100 border-2 border-red-500 rounded flex items-center justify-center p-1">
-                            {qrLogoUrl && <img src={qrLogoUrl} alt="Selected" className="max-h-full max-w-full object-contain" />}
-                          </div>
-                          <p className="text-xs text-slate-500">Click a logo below to select it.</p>
-                        </div>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-32 overflow-y-auto">
-                          {logoGallery.map((logo) => (
-                            <div key={logo.id} className={`relative cursor-pointer rounded border-2 p-1 transition-all ${qrLogoUrl === logo.url ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-slate-400 bg-white'}`} onClick={() => setQrLogoUrl(logo.url)}>
-                              <div className="h-8 flex items-center justify-center">
-                                <img src={logo.url} alt={logo.name} className="max-h-full max-w-full object-contain" />
-                              </div>
-                              <p className="text-[10px] text-slate-500 truncate text-center mt-0.5">{logo.name}</p>
-                              {qrLogoUrl === logo.url && (
-                                <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
-                                  <Check className="w-2 h-2 text-white" />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Placeholder Fields */}
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><Type className="w-3 h-3" /> Form Placeholders</h4>
-                        <PlaceholderFields values={qrPlaceholders} onChange={setQrPlaceholders} />
-                      </div>
-                    </div>
-                  )}
                 </div>
                 </div>
               )}
@@ -1913,7 +1914,7 @@ if (!formData.solicitorToBeAdvised) {
                       <div className="flex gap-2 items-end">
                         <div className="flex-1">
                           <label className="text-xs text-slate-500 block mb-1">Logo Name</label>
-                          <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} className="w-full border border-slate-300 rounded p-1.5 text-sm" placeholder="e.g. Christmas 2025" />
+                          <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} className="w-full border border-slate-300 rounded p-1.5 text-sm" placeholder="e.g. Christmas, Easter" />
                         </div>
                         <div>
                           <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
