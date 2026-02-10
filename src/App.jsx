@@ -734,7 +734,13 @@ export default function App() {
   const [isMapsLoaded, setIsMapsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
   const [isPrefilled, setIsPrefilled] = useState(false);
-  const [agentsList, setAgentsList] = useState(DEFAULT_AGENTS);
+  const [agentsList, setAgentsList] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cachedAgents');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return DEFAULT_AGENTS;
+  });
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('cachedLogoUrl') || '');
   const [defaultLogoUrl, setDefaultLogoUrl] = useState('');
   const [placeholders, setPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
@@ -833,6 +839,13 @@ export default function App() {
   useEffect(() => {
     if (logoUrl) localStorage.setItem('cachedLogoUrl', logoUrl);
   }, [logoUrl]);
+
+  // Cache agents list for instant population on next visit
+  useEffect(() => {
+    if (agentsList.length > 0 && agentsList !== DEFAULT_AGENTS) {
+      localStorage.setItem('cachedAgents', JSON.stringify(agentsList));
+    }
+  }, [agentsList]);
 
   // ==============================================================================
   // INITIALIZATION
