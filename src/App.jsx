@@ -1352,7 +1352,6 @@ if (!formData.solicitorToBeAdvised) {
         await setDoc(doc(dbRef.current, "shortlinks", uniqueId), {
           agent: agentModeData.agentName,
           address: agentModeData.propertyAddress,
-          logoUrl: qrLogoUrl,
           placeholders: qrPlaceholders,
           createdAt: new Date().toISOString()
         });
@@ -1836,32 +1835,6 @@ if (!formData.solicitorToBeAdvised) {
                       {qrCustomiseOpen && (
                         <div className="p-4 space-y-5 border-t border-slate-200">
                           <p className="text-xs text-slate-500">Override global defaults for this property. Leave fields empty to use global defaults.</p>
-
-                          {/* Logo Picker */}
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Logo</h4>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="w-24 h-12 bg-slate-100 border-2 border-red-500 rounded flex items-center justify-center p-1">
-                                {qrLogoUrl && <img src={qrLogoUrl} alt="Selected" className="max-h-full max-w-full object-contain" />}
-                              </div>
-                              <p className="text-xs text-slate-500">Click a logo below to select it.</p>
-                            </div>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-32 overflow-y-auto">
-                              {logoGallery.map((logo) => (
-                                <div key={logo.id} className={`relative cursor-pointer rounded border-2 p-1 transition-all ${qrLogoUrl === logo.url ? 'border-red-500 bg-red-50' : 'border-slate-200 hover:border-slate-400 bg-white'}`} onClick={() => setQrLogoUrl(logo.url)}>
-                                  <div className="h-8 flex items-center justify-center">
-                                    <img src={logo.url} alt={logo.name} className="max-h-full max-w-full object-contain" />
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 truncate text-center mt-0.5">{logo.name}</p>
-                                  {qrLogoUrl === logo.url && (
-                                    <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
-                                      <Check className="w-2 h-2 text-white" />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
 
                           {/* Placeholder Fields */}
                           <div>
