@@ -735,7 +735,7 @@ export default function App() {
   const [mapsError, setMapsError] = useState(null);
   const [isPrefilled, setIsPrefilled] = useState(false);
   const [agentsList, setAgentsList] = useState(DEFAULT_AGENTS);
-  const [logoUrl, setLogoUrl] = useState(''); // Start empty to avoid red flash
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('cachedLogoUrl') || '');
   const [defaultLogoUrl, setDefaultLogoUrl] = useState('');
   const [placeholders, setPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
   const [logoGallery, setLogoGallery] = useState([]);
@@ -828,6 +828,11 @@ export default function App() {
       }
     }
   }, [isPrefilled, isQRCodeForm]);
+
+  // Cache logo URL for instant display on next visit
+  useEffect(() => {
+    if (logoUrl) localStorage.setItem('cachedLogoUrl', logoUrl);
+  }, [logoUrl]);
 
   // ==============================================================================
   // INITIALIZATION
@@ -1121,6 +1126,12 @@ export default function App() {
       const initialDepNum = Math.round(priceNum * 0.0025);
       const balanceDep = priceNum ? Math.round(priceNum * (parseInt(value) / 100) - initialDepNum).toLocaleString() : '';
       setFormData(prev => ({ ...prev, balanceDepositPercent: value, balanceDeposit: balanceDep }));
+    } else if (name === 'solicitorToBeAdvised') {
+      setFormData(prev => ({
+        ...prev,
+        solicitorToBeAdvised: checked,
+        ...(checked ? { solicitorCompany: '', solicitorContact: '', solicitorEmail: '', solicitorPhone: '' } : {})
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     }
