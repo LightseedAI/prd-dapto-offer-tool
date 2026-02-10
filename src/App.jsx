@@ -1768,7 +1768,7 @@ if (!formData.solicitorToBeAdvised) {
                       <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Agent</label>
                       <select className="w-full border border-slate-300 rounded p-2 text-sm" value={agentModeData.agentName} onChange={(e) => { setAgentModeData(p => ({ ...p, agentName: e.target.value })); setQrGenerated(false); }}>
                         <option value="">-- Select --</option>
-                        {agentsList.map(a => (<option key={a.id || a.name} value={a.name}>{a.name}</option>))}
+                        {agentsList.filter(a => !a.testAgent || isDevMode).map(a => (<option key={a.id || a.name} value={a.name}>{a.name}</option>))}
                       </select>
                     </div>
                     <div>
@@ -1923,7 +1923,7 @@ if (!formData.solicitorToBeAdvised) {
                   <p className="text-sm text-slate-600">Manage your team members. Added fields will appear in the webhook data.</p>
                   <div className="border border-slate-200 rounded-lg overflow-hidden">
                     <div className="max-h-80 overflow-y-auto">
-                      {agentsList.map((a, i) => (
+                      {agentsList.filter(a => !a.testAgent || isDevMode).map((a, i) => (
                         <div key={a.id || i} className="border-b border-slate-100 last:border-b-0">
                           {editingAgent === a.id ? (
                             <div className="p-3 bg-blue-50 space-y-2">
@@ -1954,10 +1954,12 @@ if (!formData.solicitorToBeAdvised) {
                                   {isUploadingAgentPhoto ? 'Uploading...' : 'Change Photo'}
                                 </button>
                               </div>
-                              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                                <input type="checkbox" checked={editAgentTestAgent} onChange={(e) => setEditAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
-                                Test Agent
-                              </label>
+                              {isDevMode && (
+                                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                  <input type="checkbox" checked={editAgentTestAgent} onChange={(e) => setEditAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
+                                  Test Agent
+                                </label>
+                              )}
                               <div className="flex gap-2">
                                 <button onClick={handleSaveAgent} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Save</button>
                                 <button onClick={handleCancelEdit} className="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-700 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-1"><X className="w-3 h-3" /> Cancel</button>
@@ -2015,10 +2017,12 @@ if (!formData.solicitorToBeAdvised) {
                           {isUploadingAgentPhoto ? 'Uploading...' : newAgentPhoto ? 'Change Photo' : 'Upload Photo (Optional)'}
                         </button>
                       </div>
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input type="checkbox" checked={newAgentTestAgent} onChange={(e) => setNewAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
-                        Test Agent <span className="text-xs text-slate-400">(hidden from buyers, for dev testing only)</span>
-                      </label>
+                      {isDevMode && (
+                        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                          <input type="checkbox" checked={newAgentTestAgent} onChange={(e) => setNewAgentTestAgent(e.target.checked)} className="rounded border-slate-300" />
+                          Test Agent <span className="text-xs text-slate-400">(hidden from buyers, for dev testing only)</span>
+                        </label>
+                      )}
                       <button onClick={handleAddAgent} disabled={!newAgentName || !newAgentEmail} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white px-4 py-2 rounded text-sm font-bold flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Agent</button>
                     </div>
                   </div>
