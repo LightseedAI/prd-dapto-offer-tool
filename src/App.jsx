@@ -1381,30 +1381,36 @@ if (!formData.solicitorToBeAdvised) {
   // Flatten transparency to white background for email compatibility
   const flattenToWhiteBackground = (file) => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
-          const scale = isSvg ? 4 : 1;
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth * scale;
-          canvas.height = img.naturalHeight * scale;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            if (!blob) { reject(new Error('Canvas conversion failed')); return; }
-            const outName = file.name.replace(/\.\w+$/, '.png');
-            resolve(new File([blob], outName, { type: 'image/png' }));
-          }, 'image/png');
+      const timeout = setTimeout(() => reject(new Error('Image processing timed out')), 10000);
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+              const scale = isSvg ? 4 : 1;
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth * scale;
+              canvas.height = img.naturalHeight * scale;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              canvas.toBlob((blob) => {
+                clearTimeout(timeout);
+                if (!blob) { reject(new Error('Canvas conversion failed')); return; }
+                const outName = file.name.replace(/\.\w+$/, '.png');
+                resolve(new File([blob], outName, { type: 'image/png' }));
+              }, 'image/png');
+            } catch (err) { clearTimeout(timeout); reject(err); }
+          };
+          img.onerror = () => { clearTimeout(timeout); reject(new Error('Failed to load image')); };
+          img.src = e.target.result;
         };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = e.target.result;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
+        reader.onerror = () => { clearTimeout(timeout); reject(new Error('Failed to read file')); };
+        reader.readAsDataURL(file);
+      } catch (err) { clearTimeout(timeout); reject(err); }
     });
   };
 
