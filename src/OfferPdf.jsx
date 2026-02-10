@@ -55,8 +55,7 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
         <View style={styles.header}>
           <Image src={logoUrl} style={styles.logo} />
           <View style={styles.headerText}>
-            <Text style={styles.title}>NON-BINDING PROPERTY PURCHASE</Text>
-            <Text style={styles.subTitle}>Letter of Offer</Text>
+            <Text style={styles.title}>OFFER TO PURCHASE</Text>
           </View>
         </View>
 

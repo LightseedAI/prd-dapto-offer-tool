@@ -1113,11 +1113,13 @@ export default function App() {
       const formatted = formatCurrency(value);
       const priceNum = parseInt(String(value).replace(/[^0-9]/g, '')) || 0;
       const initialDep = priceNum ? Math.round(priceNum * 0.0025).toLocaleString() : '';
-      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(formData.balanceDepositPercent) / 100)).toLocaleString() : '';
+      const initialDepNum = Math.round(priceNum * 0.0025);
+      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(formData.balanceDepositPercent) / 100) - initialDepNum).toLocaleString() : '';
       setFormData(prev => ({ ...prev, purchasePrice: formatted, initialDeposit: initialDep, balanceDeposit: balanceDep }));
     } else if (name === 'balanceDepositPercent') {
       const priceNum = parseInt(String(formData.purchasePrice).replace(/[^0-9]/g, '')) || 0;
-      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(value) / 100)).toLocaleString() : '';
+      const initialDepNum = Math.round(priceNum * 0.0025);
+      const balanceDep = priceNum ? Math.round(priceNum * (parseInt(value) / 100) - initialDepNum).toLocaleString() : '';
       setFormData(prev => ({ ...prev, balanceDepositPercent: value, balanceDeposit: balanceDep }));
     } else {
       setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -1376,27 +1378,66 @@ if (!formData.solicitorToBeAdvised) {
     } catch (e) { alert("Save failed."); console.error(e); }
   };
 
-  // Logo upload handler (unchanged)
+  // Flatten transparency to white background for email compatibility
+  const flattenToWhiteBackground = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+          const scale = isSvg ? 4 : 1;
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth * scale;
+          canvas.height = img.naturalHeight * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (!blob) { reject(new Error('Canvas conversion failed')); return; }
+            const outName = file.name.replace(/\.\w+$/, '.png');
+            resolve(new File([blob], outName, { type: 'image/png' }));
+          }, 'image/png');
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Logo upload handler
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!dbRef.current || !storageRef.current) { alert("Database not connected."); return; }
-    
-    if (file.size > 2000000) { 
+
+    if (file.size > 2000000) {
       alert("File too large. Max 2MB.");
       if (logoInputRef.current) logoInputRef.current.value = '';
       return;
+    }
+
+    // Flatten transparency to white background for email compatibility
+    let uploadFile;
+    try {
+      uploadFile = await flattenToWhiteBackground(file);
+    } catch (err) {
+      console.error('Image processing failed:', err);
+      uploadFile = file;
     }
 
     const logoName = newLogoName.trim() || `Logo ${new Date().toLocaleDateString()}`;
     setIsUploadingLogo(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = uploadFile.name.split('.').pop();
       const fileName = `logos/logo-${Date.now()}.${fileExt}`;
       const logoStorageRef = ref(storageRef.current, fileName);
 
-      const snapshot = await uploadBytes(logoStorageRef, file);
+      const snapshot = await uploadBytes(logoStorageRef, uploadFile);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       await addDoc(collection(dbRef.current, "logos"), {
@@ -1434,12 +1475,13 @@ if (!formData.solicitorToBeAdvised) {
     try {
       let finalPhotoUrl = newAgentPhoto || '';
       if (photoFile && storageRef.current) {
+        const processedPhoto = await flattenToWhiteBackground(photoFile).catch(() => photoFile);
         const cleanName = newAgentName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        const fileExt = photoFile.name.split('.').pop();
+        const fileExt = processedPhoto.name.split('.').pop();
         const fileName = `${cleanName}-${Date.now()}.${fileExt}`;
         const imageRef = ref(storageRef.current, `agents/${fileName}`);
-        
-        const snapshot = await uploadBytes(imageRef, photoFile);
+
+        const snapshot = await uploadBytes(imageRef, processedPhoto);
         finalPhotoUrl = await getDownloadURL(snapshot.ref);
       }
       await addDoc(collection(dbRef.current, "agents"), {
@@ -1472,12 +1514,13 @@ if (!formData.solicitorToBeAdvised) {
     try {
       let finalPhotoUrl = editAgentPhoto;
       if (editPhotoFile && storageRef.current) {
+        const processedPhoto = await flattenToWhiteBackground(editPhotoFile).catch(() => editPhotoFile);
         const cleanName = editAgentName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        const fileExt = editPhotoFile.name.split('.').pop();
+        const fileExt = processedPhoto.name.split('.').pop();
         const fileName = `${cleanName}-${Date.now()}.${fileExt}`;
         const imageRef = ref(storageRef.current, `agents/${fileName}`);
-        
-        const snapshot = await uploadBytes(imageRef, editPhotoFile);
+
+        const snapshot = await uploadBytes(imageRef, processedPhoto);
         finalPhotoUrl = await getDownloadURL(snapshot.ref);
       }
       await updateDoc(doc(dbRef.current, "agents", editingAgent), {
@@ -1905,6 +1948,7 @@ if (!formData.solicitorToBeAdvised) {
                           </button>
                         </div>
                       </div>
+                      <p className="text-[10px] text-blue-500 mt-1.5">Recommended: PNG or JPG, at least 500px wide. Max 2MB. SVGs auto-converted to PNG.</p>
                     </div>
                   </div>
 
@@ -2037,21 +2081,20 @@ if (!formData.solicitorToBeAdvised) {
       <div ref={formContainerRef} className="max-w-4xl mx-auto bg-white shadow-xl print:shadow-none min-h-screen lg:ml-56">
         <header className="p-4 sm:p-8 pb-3 sm:pb-4 border-b border-slate-200 flex justify-between items-start print:p-0 print:mb-8">
           {/* LEFT COLUMN: Logo & Agent Info */}
-          <div className="flex flex-col gap-3 sm:gap-4 max-w-[50%]">
-            <div className="flex-shrink-0 max-w-[160px] sm:max-w-[200px] md:max-w-[250px]">
+          <div className="flex flex-col gap-2 sm:gap-3 max-w-[50%]">
+            <div className="flex-shrink-0">
               {logoUrl && (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo" 
-                  className="h-auto w-full max-h-12 sm:max-h-16 object-contain origin-left" 
-                  style={{ aspectRatio: 'auto' }}
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-auto max-w-[200px] sm:max-w-[260px] md:max-w-[320px] max-h-14 sm:max-h-20 object-contain"
                 />
               )}
             </div>
-            
+
             {/* AGENT PROFILE */}
             {formData.agentName && (
-              <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {selectedAgent?.photo ? (
                   <img src={selectedAgent.photo} alt={formData.agentName} className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-100" />
                 ) : (
@@ -2069,8 +2112,7 @@ if (!formData.solicitorToBeAdvised) {
 
           {/* RIGHT COLUMN: Document Title */}
           <div className="text-right">
-            <h2 className="text-base sm:text-xl font-bold uppercase text-slate-800">Non-Binding Property Purchase</h2>
-            <p className="text-xs sm:text-sm text-slate-800 font-semibold">Letter of Offer</p>
+            <h2 className="text-base sm:text-xl font-bold uppercase text-slate-800">Offer to Purchase</h2>
           </div>
         </header>
 
