@@ -4,7 +4,7 @@ import { PenTool, Calendar, DollarSign, User, Building, Phone, Mail, FileText, C
 import { pdf } from '@react-pdf/renderer';
 import { OfferPdfDocument } from './OfferPdf';
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
 
@@ -855,7 +855,9 @@ export default function App() {
     if (CONST_FIREBASE_CONFIG && !dbRef.current) {
       try {
         const app = initializeApp(CONST_FIREBASE_CONFIG);
-        dbRef.current = getFirestore(app);
+        dbRef.current = initializeFirestore(app, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
         storageRef.current = getStorage(app);
         authRef.current = getAuth(app);
         onAuthStateChanged(authRef.current, (user) => setAdminUser(user));
