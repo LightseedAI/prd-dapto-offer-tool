@@ -186,7 +186,7 @@ const calculateProgress = (formData) => {
   };
 };
 
-const getSectionStatus = (formData, section) => {
+const getSectionStatus = (formData, section, features = {}) => {
   // Special handling for Buyer section
   if (section.id === 'buyer') {
     const buyers = formData.buyers || [];
@@ -232,9 +232,22 @@ const getSectionStatus = (formData, section) => {
     return 'empty';
   }
   
+  // Special handling for Price section (deposits may be off)
+  if (section.id === 'price') {
+    const priceFields = features.showDeposits
+      ? ['purchasePrice', 'initialDeposit', 'balanceDeposit']
+      : ['purchasePrice'];
+    const filled = priceFields.filter(f => formData[f] && String(formData[f]).trim().length > 0);
+    if (filled.length === priceFields.length) return 'complete';
+    if (filled.length > 0) return 'partial';
+    return 'empty';
+  }
+
   // Special handling for Conditions section
   if (section.id === 'conditions') {
-    const conditionFields = ['financeDate', 'inspectionDate', 'settlementDate'];
+    const conditionFields = features.showBuildingPest
+      ? ['financeDate', 'inspectionDate', 'settlementDate']
+      : ['financeDate', 'settlementDate'];
     const filledFields = conditionFields.filter(field => {
       const value = formData[field];
       return value && String(value).trim().length > 0;
@@ -338,7 +351,7 @@ const MobileProgressBar = ({ formData, isQRForm = false }) => {
 };
 
 // Desktop Floating Sidebar Progress Component
-const DesktopProgressSidebar = ({ formData, isQRForm = false }) => {
+const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) => {
   const progress = calculateProgress(formData);
   
   const scrollToSection = (sectionId) => {
@@ -385,7 +398,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false }) => {
         {/* Section Steps */}
         <div className="space-y-1">
           {FORM_SECTIONS.map((section, index) => {
-            const status = getSectionStatus(formData, section);
+            const status = getSectionStatus(formData, section, features);
             const Icon = section.icon;
             
             return (
@@ -744,6 +757,7 @@ export default function App() {
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('cachedLogoUrl') || '');
   const [defaultLogoUrl, setDefaultLogoUrl] = useState('');
   const [placeholders, setPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
+  const [features, setFeatures] = useState({ showDeposits: false, showBuildingPest: false });
   const [logoGallery, setLogoGallery] = useState([]);
 
   // Admin UI State
@@ -756,6 +770,7 @@ export default function App() {
 
   const [tempLogoUrl, setTempLogoUrl] = useState('');
   const [tempPlaceholders, setTempPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
+  const [tempFeatures, setTempFeatures] = useState({ showDeposits: false, showBuildingPest: false });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingAgentPhoto, setIsUploadingAgentPhoto] = useState(false);
   const [newLogoName, setNewLogoName] = useState('');
@@ -915,11 +930,17 @@ export default function App() {
             if (data.placeholders) {
               setTempPlaceholders({ ...DEFAULT_PLACEHOLDERS, ...data.placeholders });
             }
+            // Load feature flags
+            if (data.features) {
+              setFeatures(prev => ({ ...prev, ...data.features }));
+              setTempFeatures(prev => ({ ...prev, ...data.features }));
+            }
           } else {
             await setDoc(docRef, {
               defaultLogoUrl: ORIGINAL_DEFAULT_LOGO,
               logoUrl: ORIGINAL_DEFAULT_LOGO,
-              placeholders: DEFAULT_PLACEHOLDERS
+              placeholders: DEFAULT_PLACEHOLDERS,
+              features: { showDeposits: false, showBuildingPest: false }
             });
             setDefaultLogoUrl(ORIGINAL_DEFAULT_LOGO);
             if (!propertySettingsApplied.current) {
@@ -1262,8 +1283,10 @@ export default function App() {
     if (!formData.agentName) errors.agentName = 'Selling Agent is required';
     if (!formData.propertyAddress) errors.propertyAddress = 'Property Address is required';
     if (!formData.purchasePrice) errors.purchasePrice = 'Purchase Price is required';
-    if (!formData.initialDeposit) errors.initialDeposit = 'Initial Deposit is required';
-    if (!formData.balanceDeposit) errors.balanceDeposit = 'Balance Deposit is required';
+    if (features.showDeposits) {
+      if (!formData.initialDeposit) errors.initialDeposit = 'Initial Deposit is required';
+      if (!formData.balanceDeposit) errors.balanceDeposit = 'Balance Deposit is required';
+    }
     // Solicitor validation - only required if NOT "to be advised"
 if (!formData.solicitorToBeAdvised) {
   if (!formData.solicitorEmail) errors.solicitorEmail = 'Solicitor Email is required';
@@ -1292,7 +1315,7 @@ if (!formData.solicitorToBeAdvised) {
   const generatePDF = async () => {
     try {
       const blob = await pdf(
-        <OfferPdfDocument formData={formData} logoUrl={logoUrl} />
+        <OfferPdfDocument formData={formData} logoUrl={logoUrl} features={features} />
       ).toBlob();
       
       return new Promise((resolve, reject) => {
@@ -1345,13 +1368,15 @@ if (!formData.solicitorToBeAdvised) {
       agentMobile: currentAgent?.mobile || formData.agentMobile || '',
       agentTitle: currentAgent?.title || formData.agentTitle || '',
       testAgent: currentAgent?.testAgent || false,
-      totalDeposit: totalDeposit.toLocaleString(),
-      initialDeposit: formData.initialDeposit,
-      balanceDeposit: formData.balanceDeposit,
-      balanceDepositTerms: formData.balanceDepositTerms,
+      totalDeposit: features.showDeposits ? totalDeposit.toLocaleString() : '',
+      initialDeposit: features.showDeposits ? formData.initialDeposit : '',
+      balanceDeposit: features.showDeposits ? formData.balanceDeposit : '',
+      balanceDepositTerms: features.showDeposits ? formData.balanceDepositTerms : '',
+      inspectionDate: features.showBuildingPest ? formData.inspectionDate : '',
       financeDate: formData.financeDate,
-      inspectionDate: formData.inspectionDate, 
-      settlementDate: formData.settlementDate, 
+      settlementDate: formData.settlementDate,
+      showDeposits: features.showDeposits,
+      showBuildingPest: features.showBuildingPest,
       submittedAt: new Date().toISOString(),
       pdfBase64,
       pdfFilename: `Offer_${formData.propertyAddress.replace(/[^a-z0-9]/gi, '_').substring(0, 30)}_${new Date().toISOString().split('T')[0]}.pdf`
@@ -1401,7 +1426,8 @@ if (!formData.solicitorToBeAdvised) {
     try {
       await setDoc(doc(dbRef.current, "config", "settings"), {
         logoUrl: tempLogoUrl,
-        placeholders: tempPlaceholders
+        placeholders: tempPlaceholders,
+        features: tempFeatures
       }, { merge: true });
       alert("Settings Saved!");
     } catch (e) { alert("Save failed."); console.error(e); }
@@ -1703,7 +1729,7 @@ if (!formData.solicitorToBeAdvised) {
       `}</style>
 
       {/* Desktop Floating Progress Sidebar */}
-      {!isQRCodeForm && <DesktopProgressSidebar formData={formData} />}
+      {!isQRCodeForm && <DesktopProgressSidebar formData={formData} features={features} />}
 
       {/* Auto-save Indicator */}
       <AutoSaveIndicator show={showAutoSave} />
@@ -1966,6 +1992,36 @@ if (!formData.solicitorToBeAdvised) {
                     <p className="text-xs text-slate-500 mb-3">These values pre-fill the form fields for buyers. Leave empty for no placeholder.</p>
                     <PlaceholderFields values={tempPlaceholders} onChange={setTempPlaceholders} />
                   </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Settings className="w-4 h-4" /> Form Sections</h3>
+                    <p className="text-xs text-slate-500 mb-3">Toggle which optional sections are visible on the buyer form.</p>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                        <div>
+                          <span className="text-sm font-medium text-slate-700">Show Deposit Details</span>
+                          <p className="text-xs text-slate-500">Initial + Balance Deposit fields and calculations</p>
+                        </div>
+                        <div className="relative">
+                          <input type="checkbox" checked={tempFeatures.showDeposits} onChange={(e) => setTempFeatures(f => ({ ...f, showDeposits: e.target.checked }))} className="sr-only peer" />
+                          <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-600 rounded-full transition-colors"></div>
+                          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                        </div>
+                      </label>
+                      <label className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                        <div>
+                          <span className="text-sm font-medium text-slate-700">Show Building & Pest</span>
+                          <p className="text-xs text-slate-500">Building & Pest inspection date field</p>
+                        </div>
+                        <div className="relative">
+                          <input type="checkbox" checked={tempFeatures.showBuildingPest} onChange={(e) => setTempFeatures(f => ({ ...f, showBuildingPest: e.target.checked }))} className="sr-only peer" />
+                          <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-600 rounded-full transition-colors"></div>
+                          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   <button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold">Save Defaults</button>
                 </div>
               )}
@@ -2411,7 +2467,7 @@ if (!formData.solicitorToBeAdvised) {
   />
 </div>
 
-<SectionHeader icon={DollarSign} title="Price & Deposit" id="price" />
+<SectionHeader icon={DollarSign} title={features.showDeposits ? "Price & Deposit" : "Price"} id="price" />
 
 <div className="mb-6">
   <InputField 
@@ -2426,6 +2482,7 @@ if (!formData.solicitorToBeAdvised) {
   />
 </div>
 
+{features.showDeposits && (<>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
   <div className="p-4 bg-green-50 border border-green-200 rounded">
     <h3 className="font-bold text-green-800 mb-3 text-sm flex items-center gap-2">
@@ -2485,19 +2542,20 @@ if (!formData.solicitorToBeAdvised) {
     <div className="flex justify-between items-center">
       <span className="font-bold text-slate-700">Total Deposit:</span>
       <span className="text-xl font-bold text-slate-900">
-        ${((parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0) + 
+        ${((parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0) +
            (parseFloat(String(formData.balanceDeposit).replace(/[^0-9.]/g, '')) || 0)).toLocaleString()}
       </span>
     </div>
     <p className="text-xs text-slate-500 mt-1">
-      Initial ${(parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0).toLocaleString()} + 
+      Initial ${(parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0).toLocaleString()} +
       Balance ${(parseFloat(String(formData.balanceDeposit).replace(/[^0-9.]/g, '')) || 0).toLocaleString()}
     </p>
   </div>
 )}
+</>)}
 
           <SectionHeader icon={Calendar} title="Conditions" id="conditions" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className={`grid grid-cols-1 ${features.showBuildingPest ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded">
               <h3 className="font-bold text-slate-700 mb-3 text-sm">Finance</h3>
               <InputField label="Finance Date" name="financeDate" value={formData.financeDate} onChange={handleChange} placeholder={placeholders.financeDate || ''} className="mb-3" />
@@ -2514,10 +2572,12 @@ if (!formData.solicitorToBeAdvised) {
               </select>
               <Checkbox label="Waiver of Cooling Off Period" name="waiverCoolingOff" checked={formData.waiverCoolingOff} onChange={handleChange} />
             </div>
+            {features.showBuildingPest && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded">
               <h3 className="font-bold text-slate-700 mb-3 text-sm">Building & Pest</h3>
               <InputField label="Inspection Date" name="inspectionDate" value={formData.inspectionDate} onChange={handleChange} placeholder={placeholders.inspectionDate || ''} />
             </div>
+            )}
           </div>
           <InputField label="Settlement Date" name="settlementDate" value={formData.settlementDate} onChange={handleChange} placeholder={placeholders.settlementDate || ''} />
 

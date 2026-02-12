@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   disclaimerText: { fontSize: 8, color: '#991B1B', lineHeight: 1.4 }
 });
 
-export const OfferPdfDocument = ({ formData, logoUrl }) => {
+export const OfferPdfDocument = ({ formData, logoUrl, features = {} }) => {
   const buyers = formData.buyers || [];
   
   // Calculate total deposit
@@ -151,14 +151,16 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
           )}
         </View>
 
-        {/* PRICE & DEPOSIT - Two-stage deposits */}
+        {/* PRICE & DEPOSIT */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price & Deposit</Text>
+          <Text style={styles.sectionTitle}>{features.showDeposits ? 'Price & Deposit' : 'Price'}</Text>
           <View style={styles.row}>
             <Text style={styles.label}>Purchase Price:</Text>
             <Text style={styles.value}>${formData.purchasePrice}</Text>
           </View>
-          
+
+          {features.showDeposits && (
+          <>
           <View style={styles.row}>
             <Text style={styles.label}>Initial Deposit (0.25%) Non Refundable:</Text>
             <Text style={styles.value}>${formData.initialDeposit}</Text>
@@ -168,7 +170,7 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
               Payable within 24 hours of offer being accepted
             </Text>
           </View>
-          
+
           <View style={styles.row}>
             <Text style={styles.label}>Balance Deposit ({formData.balanceDepositPercent || '10'}%):</Text>
             <Text style={styles.value}>${formData.balanceDeposit}</Text>
@@ -178,13 +180,15 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
               Payable before expiration of Cooling Off Period{formData.balanceDepositTerms ? ` — ${formData.balanceDepositTerms}` : ''}
             </Text>
           </View>
-          
+
           <View style={styles.row}>
             <Text style={styles.label}>Total Deposit:</Text>
             <Text style={{ ...styles.value, fontFamily: 'Helvetica-Bold' }}>
               ${totalDeposit.toLocaleString()}
             </Text>
           </View>
+          </>
+          )}
         </View>
 
         {/* CONDITIONS */}
@@ -204,10 +208,12 @@ export const OfferPdfDocument = ({ formData, logoUrl }) => {
               {formData.financeDate} {formData.financePreApproved ? '(Pre-Approved)' : ''}
             </Text>
           </View>
+          {features.showBuildingPest && (
           <View style={styles.row}>
             <Text style={styles.label}>Building & Pest:</Text>
             <Text style={styles.value}>{formData.inspectionDate || 'Not specified'}</Text>
           </View>
+          )}
           <View style={styles.row}>
             <Text style={styles.label}>Settlement Date:</Text>
             <Text style={styles.value}>{formData.settlementDate || 'Not specified'}</Text>
