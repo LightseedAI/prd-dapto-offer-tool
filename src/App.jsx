@@ -245,9 +245,11 @@ const getSectionStatus = (formData, section, features = {}) => {
 
   // Special handling for Conditions section
   if (section.id === 'conditions') {
-    const conditionFields = features.showBuildingPest
-      ? ['financeDate', 'inspectionDate', 'settlementDate']
-      : ['financeDate', 'settlementDate'];
+    const conditionFields = [
+      ...(features.showFinance ? ['financeDate'] : []),
+      ...(features.showBuildingPest ? ['inspectionDate'] : []),
+      'settlementDate'
+    ];
     const filledFields = conditionFields.filter(field => {
       const value = formData[field];
       return value && String(value).trim().length > 0;
@@ -757,7 +759,7 @@ export default function App() {
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem('cachedLogoUrl') || '');
   const [defaultLogoUrl, setDefaultLogoUrl] = useState('');
   const [placeholders, setPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
-  const [features, setFeatures] = useState({ showDeposits: false, showBuildingPest: false });
+  const [features, setFeatures] = useState({ showDeposits: false, showBuildingPest: false, showFinance: false });
   const [logoGallery, setLogoGallery] = useState([]);
 
   // Admin UI State
@@ -770,7 +772,7 @@ export default function App() {
 
   const [tempLogoUrl, setTempLogoUrl] = useState('');
   const [tempPlaceholders, setTempPlaceholders] = useState(DEFAULT_PLACEHOLDERS);
-  const [tempFeatures, setTempFeatures] = useState({ showDeposits: false, showBuildingPest: false });
+  const [tempFeatures, setTempFeatures] = useState({ showDeposits: false, showBuildingPest: false, showFinance: false });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingAgentPhoto, setIsUploadingAgentPhoto] = useState(false);
   const [newLogoName, setNewLogoName] = useState('');
@@ -940,7 +942,7 @@ export default function App() {
               defaultLogoUrl: ORIGINAL_DEFAULT_LOGO,
               logoUrl: ORIGINAL_DEFAULT_LOGO,
               placeholders: DEFAULT_PLACEHOLDERS,
-              features: { showDeposits: false, showBuildingPest: false }
+              features: { showDeposits: false, showBuildingPest: false, showFinance: false }
             });
             setDefaultLogoUrl(ORIGINAL_DEFAULT_LOGO);
             if (!propertySettingsApplied.current) {
@@ -1373,10 +1375,12 @@ if (!formData.solicitorToBeAdvised) {
       balanceDeposit: features.showDeposits ? formData.balanceDeposit : '',
       balanceDepositTerms: features.showDeposits ? formData.balanceDepositTerms : '',
       inspectionDate: features.showBuildingPest ? formData.inspectionDate : '',
-      financeDate: formData.financeDate,
+      financeDate: features.showFinance ? formData.financeDate : '',
+      financePreApproved: features.showFinance ? formData.financePreApproved : false,
       settlementDate: formData.settlementDate,
       showDeposits: features.showDeposits,
       showBuildingPest: features.showBuildingPest,
+      showFinance: features.showFinance,
       submittedAt: new Date().toISOString(),
       pdfBase64,
       pdfFilename: `Offer_${formData.propertyAddress.replace(/[^a-z0-9]/gi, '_').substring(0, 30)}_${new Date().toISOString().split('T')[0]}.pdf`
@@ -2010,6 +2014,17 @@ if (!formData.solicitorToBeAdvised) {
                       </label>
                       <label className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
                         <div>
+                          <span className="text-sm font-medium text-slate-700">Show Finance</span>
+                          <p className="text-xs text-slate-500">Finance Date and Loan Pre-Approved fields</p>
+                        </div>
+                        <div className="relative">
+                          <input type="checkbox" checked={tempFeatures.showFinance} onChange={(e) => setTempFeatures(f => ({ ...f, showFinance: e.target.checked }))} className="sr-only peer" />
+                          <div className="w-10 h-5 bg-slate-300 peer-checked:bg-blue-600 rounded-full transition-colors"></div>
+                          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                        </div>
+                      </label>
+                      <label className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                        <div>
                           <span className="text-sm font-medium text-slate-700">Show Building & Pest</span>
                           <p className="text-xs text-slate-500">Building & Pest inspection date field</p>
                         </div>
@@ -2557,10 +2572,12 @@ if (!formData.solicitorToBeAdvised) {
           <SectionHeader icon={Calendar} title="Conditions" id="conditions" />
           <div className={`grid grid-cols-1 ${features.showBuildingPest ? 'md:grid-cols-2' : ''} gap-6 mb-6`}>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">Finance</h3>
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">{features.showFinance ? 'Finance' : 'Cooling Off'}</h3>
+              {features.showFinance && (<>
               <InputField label="Finance Date" name="financeDate" value={formData.financeDate} onChange={handleChange} placeholder={placeholders.financeDate || ''} className="mb-3" />
               <Checkbox label="Loan Pre-Approved?" name="financePreApproved" checked={formData.financePreApproved} onChange={handleChange} />
-              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block mt-3">Cooling Off Period</label>
+              </>)}
+              <label className={`text-xs font-bold text-slate-500 uppercase mb-1 block ${features.showFinance ? 'mt-3' : ''}`}>Cooling Off Period</label>
               <select
                 name="coolingOffPeriod"
                 value={formData.coolingOffPeriod}

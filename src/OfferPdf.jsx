@@ -202,12 +202,14 @@ export const OfferPdfDocument = ({ formData, logoUrl, features = {} }) => {
             </Text>
           </View>
           
+          {features.showFinance && (
           <View style={styles.row}>
             <Text style={styles.label}>Finance Date:</Text>
             <Text style={styles.value}>
               {formData.financeDate} {formData.financePreApproved ? '(Pre-Approved)' : ''}
             </Text>
           </View>
+          )}
           {features.showBuildingPest && (
           <View style={styles.row}>
             <Text style={styles.label}>Building & Pest:</Text>
