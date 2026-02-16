@@ -4,7 +4,7 @@ import { PenTool, Calendar, DollarSign, User, Building, Phone, Mail, FileText, C
 import { pdf } from '@react-pdf/renderer';
 import { OfferPdfDocument } from './OfferPdf';
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocs, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
 
@@ -872,29 +872,25 @@ export default function App() {
     if (CONST_FIREBASE_CONFIG && !dbRef.current) {
       try {
         const app = initializeApp(CONST_FIREBASE_CONFIG);
-        try {
-          dbRef.current = initializeFirestore(app, {
-            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-          });
-        } catch (e) {
-          dbRef.current = getFirestore(app);
-        }
+        dbRef.current = getFirestore(app);
         storageRef.current = getStorage(app);
         authRef.current = getAuth(app);
         onAuthStateChanged(authRef.current, (user) => setAdminUser(user));
 
+        // Eager fetch agents immediately (faster than waiting for onSnapshot)
         const qAgents = query(collection(dbRef.current, "agents"), orderBy("name"));
-        const unsubAgents = onSnapshot(qAgents, (snap) => {
-          console.log('📊 Agents snapshot received');
-          console.log('Empty?', snap.empty);
-          console.log('Number of docs:', snap.docs.length);
-          
+        getDocs(qAgents).then((snap) => {
           if (!snap.empty) {
             const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            console.log('Loaded agents:', loaded);
             setAgentsList(loaded);
-          } else {
-            console.log('⚠️ Agents snapshot is EMPTY!');
+          }
+        }).catch(e => console.warn('Eager agents fetch failed:', e));
+
+        // Then subscribe for real-time updates
+        const unsubAgents = onSnapshot(qAgents, (snap) => {
+          if (!snap.empty) {
+            const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setAgentsList(loaded);
           }
         });
 
