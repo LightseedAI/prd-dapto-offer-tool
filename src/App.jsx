@@ -2302,9 +2302,9 @@ if (!formData.solicitorToBeAdvised) {
 
           <SectionHeader icon={Building} title="Property Details" id="property" />
           {manualAddressEntry ? (
-            <InputField label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder="e.g. 4D/238 The Esplanade, Woonona" className="w-full" required readOnly={isAddressPrefilled} error={!!fieldErrors.propertyAddress} />
+            <InputField key="manual" label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder="e.g. 4D/238 The Esplanade, Woonona" className="w-full" required readOnly={isAddressPrefilled} error={!!fieldErrors.propertyAddress} />
           ) : (
-            <InputField label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder={isMapsLoaded && !mapsError ? "Start typing address..." : "e.g. 4D/238 The Esplanade"} className="w-full" required readOnly={isAddressPrefilled} inputRef={addressInputRef} icon={isMapsLoaded && !mapsError ? MapPin : null} error={!!fieldErrors.propertyAddress} />
+            <InputField key="search" label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder={isMapsLoaded && !mapsError ? "Start typing address..." : "e.g. 4D/238 The Esplanade"} className="w-full" required readOnly={isAddressPrefilled} inputRef={addressInputRef} icon={isMapsLoaded && !mapsError ? MapPin : null} error={!!fieldErrors.propertyAddress} />
           )}
           {!isAddressPrefilled && isMapsLoaded && !mapsError && (
             <button type="button" onClick={toggleManualAddress} className="text-xs text-slate-400 hover:text-red-600 mt-1 underline print:hidden">
