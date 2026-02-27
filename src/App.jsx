@@ -748,7 +748,9 @@ export default function App() {
   // Data State
   const [isMapsLoaded, setIsMapsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
-  const [isPrefilled, setIsPrefilled] = useState(false);
+  const [isAgentPrefilled, setIsAgentPrefilled] = useState(false);
+  const [isAddressPrefilled, setIsAddressPrefilled] = useState(false);
+  const [manualAddressEntry, setManualAddressEntry] = useState(false);
   const [agentsList, setAgentsList] = useState(() => {
     try {
       const cached = localStorage.getItem('cachedAgents');
@@ -786,7 +788,9 @@ export default function App() {
   const [editAgentMobile, setEditAgentMobile] = useState('');
   const [editAgentTitle, setEditAgentTitle] = useState('');
   const [editAgentPhoto, setEditAgentPhoto] = useState('');
+  const [editAgentSlug, setEditAgentSlug] = useState('');
   const [editAgentTestAgent, setEditAgentTestAgent] = useState(false);
+  const [newAgentSlug, setNewAgentSlug] = useState('');
 
   const [agentModeData, setAgentModeData] = useState({ agentName: '', propertyAddress: '' });
   const [shortLink, setShortLink] = useState('');
@@ -800,7 +804,9 @@ export default function App() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const propertyId = urlParams.get('id');
-  const isQRCodeForm = !!propertyId;
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const agentSlug = pathParts[0] || '';
+  const isQRCodeForm = !!propertyId || !!agentSlug;
   const isDevMode = urlParams.get('dev') === 'true';
   
   const addressInputRef = useRef(null);
@@ -842,15 +848,15 @@ export default function App() {
     };
   }, [formData]);
 
-  // Load draft on component mount (skip for QR code forms)
+  // Load draft on component mount (skip for QR code / agent-prefilled forms)
   useEffect(() => {
-    if (!isPrefilled && !isQRCodeForm) {
+    if (!isAgentPrefilled && !isQRCodeForm) {
       const draft = loadDraft();
       if (draft) {
         setFormData(prev => ({ ...prev, ...draft }));
       }
     }
-  }, [isPrefilled, isQRCodeForm]);
+  }, [isAgentPrefilled, isQRCodeForm]);
 
   // Cache logo URL for instant display on next visit
   useEffect(() => {
@@ -973,11 +979,11 @@ export default function App() {
 
   // Main Form Autocomplete
   useEffect(() => {
-    if (isMapsLoaded && !mapsError && addressInputRef.current && !autocompleteInstance.current && !isPrefilled) {
+    if (isMapsLoaded && !mapsError && addressInputRef.current && !autocompleteInstance.current && !isAddressPrefilled && !manualAddressEntry) {
       try {
         const ac = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-          types: ['address'], 
-          componentRestrictions: { country: 'au' }, 
+          types: ['address'],
+          componentRestrictions: { country: 'au' },
           fields: ['formatted_address']
         });
         autocompleteInstance.current = ac;
@@ -990,7 +996,7 @@ export default function App() {
         });
       } catch (e) { console.error(e); }
     }
-  }, [isMapsLoaded, mapsError, isPrefilled]);
+  }, [isMapsLoaded, mapsError, isAddressPrefilled, manualAddressEntry]);
 
   // Admin Panel Autocomplete
   useEffect(() => {
@@ -1039,19 +1045,18 @@ export default function App() {
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
-      
+
       let foundAgentName = '';
       let foundAddress = '';
 
       if (id && dbRef.current) {
-        setIsPrefilled(true);
+        // Property-specific shortlink (?id=abc123)
         try {
           const snap = await getDoc(doc(dbRef.current, "shortlinks", id));
           if (snap.exists()) {
             const data = snap.data();
             foundAgentName = data.agent || '';
             foundAddress = data.address || '';
-            // Load per-property settings if present
             if (data.logoUrl) {
               setLogoUrl(data.logoUrl);
               propertySettingsApplied.current = true;
@@ -1062,17 +1067,28 @@ export default function App() {
             }
           }
         } catch (e) { console.error(e); }
-      } 
-      else {
+        if (foundAgentName) setIsAgentPrefilled(true);
+        if (foundAddress) setIsAddressPrefilled(true);
+      } else if (agentSlug) {
+        // Agent slug path (/jake) — agent-only, buyer fills in address
+        const agent = agentsList.find(a => a.slug === agentSlug);
+        if (agent) {
+          foundAgentName = agent.name;
+          setIsAgentPrefilled(true);
+          // isAddressPrefilled stays false — buyer fills in address
+        }
+      } else {
+        // Legacy query params (?a=Name&p=Address)
         foundAgentName = params.get('agent') || params.get('a') || '';
         foundAddress = params.get('address') || params.get('p') || '';
-        if (foundAgentName || foundAddress) setIsPrefilled(true);
+        if (foundAgentName) setIsAgentPrefilled(true);
+        if (foundAddress) setIsAddressPrefilled(true);
       }
 
       if (foundAgentName) {
         const agentDetails = agentsList.find(a => a.name === foundAgentName);
-        setFormData(prev => ({ 
-          ...prev, 
+        setFormData(prev => ({
+          ...prev,
           agentName: foundAgentName,
           propertyAddress: foundAddress || prev.propertyAddress,
           agentEmail: agentDetails ? agentDetails.email : prev.agentEmail,
@@ -1084,7 +1100,7 @@ export default function App() {
         setFormData(prev => ({ ...prev, propertyAddress: foundAddress }));
       }
     };
-    
+
     loadFromUrl();
   }, [agentsList]);
 
@@ -1398,24 +1414,37 @@ if (!formData.solicitorToBeAdvised) {
 
   // (Additional handler functions remain the same as original...)
   const generateSmartLink = async () => {
-    if (!agentModeData.agentName || !agentModeData.propertyAddress) return;
+    if (!agentModeData.agentName) return;
     setIsGeneratingLink(true);
     let finalUrl = '';
-    if (dbRef.current) {
-      try {
-        const uniqueId = Math.random().toString(36).substring(2, 7);
-        await setDoc(doc(dbRef.current, "shortlinks", uniqueId), {
-          agent: agentModeData.agentName,
-          address: agentModeData.propertyAddress,
-          placeholders: qrPlaceholders,
-          createdAt: new Date().toISOString()
-        });
-        finalUrl = `${window.location.origin}${window.location.pathname}?id=${uniqueId}`;
-      } catch (e) { console.error(e); }
+
+    if (agentModeData.propertyAddress) {
+      // Property-specific QR — save shortlink to Firestore
+      if (dbRef.current) {
+        try {
+          const uniqueId = Math.random().toString(36).substring(2, 7);
+          await setDoc(doc(dbRef.current, "shortlinks", uniqueId), {
+            agent: agentModeData.agentName,
+            address: agentModeData.propertyAddress,
+            placeholders: qrPlaceholders,
+            createdAt: new Date().toISOString()
+          });
+          finalUrl = `${window.location.origin}/?id=${uniqueId}`;
+        } catch (e) { console.error(e); }
+      }
+      if (!finalUrl) {
+        finalUrl = `${window.location.origin}/?a=${encodeURIComponent(agentModeData.agentName)}&p=${encodeURIComponent(agentModeData.propertyAddress)}`;
+      }
+    } else {
+      // Agent-only QR — use clean slug path
+      const agent = agentsList.find(a => a.name === agentModeData.agentName);
+      if (agent?.slug) {
+        finalUrl = `${window.location.origin}/${agent.slug}`;
+      } else {
+        finalUrl = `${window.location.origin}/?a=${encodeURIComponent(agentModeData.agentName)}`;
+      }
     }
-    if (!finalUrl) {
-      finalUrl = `${window.location.origin}${window.location.pathname}?a=${encodeURIComponent(agentModeData.agentName)}&p=${encodeURIComponent(agentModeData.propertyAddress)}`;
-    }
+
     setShortLink(finalUrl);
     setIsGeneratingLink(false);
     setQrGenerated(true);
@@ -1545,15 +1574,17 @@ if (!formData.solicitorToBeAdvised) {
         const snapshot = await uploadBytes(imageRef, processedPhoto);
         finalPhotoUrl = await getDownloadURL(snapshot.ref);
       }
+      const slug = newAgentSlug.trim() || generateSlugFromName(newAgentName);
       await addDoc(collection(dbRef.current, "agents"), {
         name: newAgentName,
         email: newAgentEmail,
         mobile: newAgentMobile,
         title: newAgentTitle,
         photo: finalPhotoUrl,
+        slug,
         testAgent: newAgentTestAgent
       });
-      setNewAgentName(''); setNewAgentEmail(''); setNewAgentMobile(''); setNewAgentTitle(''); setNewAgentPhoto(''); setPhotoFile(null); setNewAgentTestAgent(false);
+      setNewAgentName(''); setNewAgentEmail(''); setNewAgentMobile(''); setNewAgentTitle(''); setNewAgentPhoto(''); setNewAgentSlug(''); setPhotoFile(null); setNewAgentTestAgent(false);
       alert("Agent added successfully!");
     } catch (e) { console.error(e); alert("Add failed."); } finally { setIsUploadingAgentPhoto(false); }
   };
@@ -1565,6 +1596,7 @@ if (!formData.solicitorToBeAdvised) {
     setEditAgentMobile(agent.mobile || '');
     setEditAgentTitle(agent.title || '');
     setEditAgentPhoto(agent.photo || '');
+    setEditAgentSlug(agent.slug || generateSlugFromName(agent.name));
     setEditAgentTestAgent(agent.testAgent || false);
     setEditPhotoFile(null);
   };
@@ -1590,6 +1622,7 @@ if (!formData.solicitorToBeAdvised) {
         mobile: editAgentMobile,
         title: editAgentTitle,
         photo: finalPhotoUrl,
+        slug: editAgentSlug.trim() || generateSlugFromName(editAgentName),
         testAgent: editAgentTestAgent
       });
       setEditingAgent(null); setEditPhotoFile(null);
@@ -1602,6 +1635,27 @@ if (!formData.solicitorToBeAdvised) {
   const handleDeleteAgent = async (id) => {
     if (!dbRef.current || !id) return;
     if (window.confirm("Remove Agent?")) await deleteDoc(doc(dbRef.current, "agents", id));
+  };
+
+  const generateSlugFromName = (name) => {
+    const firstName = name.trim().split(' ')[0];
+    const base = firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const usedSlugs = agentsList.map(a => a.slug).filter(Boolean);
+    let slug = base;
+    let counter = 2;
+    while (usedSlugs.includes(slug)) {
+      slug = `${base}${counter}`;
+      counter++;
+    }
+    return slug;
+  };
+
+  const toggleManualAddress = () => {
+    if (!manualAddressEntry && autocompleteInstance.current) {
+      window.google.maps.event.clearInstanceListeners(autocompleteInstance.current);
+      autocompleteInstance.current = null;
+    }
+    setManualAddressEntry(prev => !prev);
   };
 
   const handleClearForm = () => {
@@ -1697,7 +1751,8 @@ if (!formData.solicitorToBeAdvised) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `QR_${agentModeData.propertyAddress.replace(/[^a-z0-9]/gi, '_').substring(0, 15)}.png`;
+      const qrLabel = agentModeData.propertyAddress || agentModeData.agentName.split(' ')[0];
+      link.download = `QR_${qrLabel.replace(/[^a-z0-9]/gi, '_').substring(0, 15)}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1729,20 +1784,20 @@ if (!formData.solicitorToBeAdvised) {
       `}</style>
 
       {/* Desktop Floating Progress Sidebar */}
-      {!isQRCodeForm && <DesktopProgressSidebar formData={formData} features={features} />}
+      <DesktopProgressSidebar formData={formData} features={features} />
 
       {/* Auto-save Indicator */}
       <AutoSaveIndicator show={showAutoSave} />
 
-      {/* FIXED: Navigation bar - removed transition that caused bounce */}
-      {!isQRCodeForm && (
+      {/* Navigation bar — hidden only for property-specific QR forms */}
+      {!propertyId && (
         <nav className="bg-slate-900 text-white p-3 sm:p-4 sticky top-0 z-50 shadow-md print:hidden">
           <div className="max-w-5xl mx-auto flex justify-between items-center">
             <div className="flex items-center gap-2">
               {logoUrl && <img src={logoUrl} alt="Logo" className="h-6 sm:h-8 w-auto bg-white p-1 rounded" />}
               <span className="font-bold tracking-tight ml-2 hidden sm:inline">Offer Form</span>
             </div>
-            {!isPrefilled && (
+            {!isAgentPrefilled && (
               <div className="flex gap-1 sm:gap-2">
                 <button type="button" onClick={openAdminPanel} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 rounded transition text-xs sm:text-sm font-bold">
                   <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -1763,7 +1818,7 @@ if (!formData.solicitorToBeAdvised) {
       )}
 
       {/* Mobile Progress Bar - only visible on mobile */}
-      <MobileProgressBar formData={formData} isQRForm={isQRCodeForm} />
+      <MobileProgressBar formData={formData} isQRForm={!!propertyId} />
 
       {/* LOGIN MODAL */}
       {showLoginModal && (
@@ -1867,19 +1922,19 @@ if (!formData.solicitorToBeAdvised) {
                 <div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <p className="text-sm text-slate-600">Generate a QR code link for your open home.</p>
+                    <p className="text-sm text-slate-600">Generate a QR code for an agent. Add an address for a property-specific code, or leave blank for an agent-only link buyers can use anywhere.</p>
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Agent</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Agent <span className="text-red-500">*</span></label>
                       <select className="w-full border border-slate-300 rounded p-2 text-sm" value={agentModeData.agentName} onChange={(e) => { setAgentModeData(p => ({ ...p, agentName: e.target.value })); setQrGenerated(false); }}>
                         <option value="">-- Select --</option>
-                        {agentsList.filter(a => !a.testAgent || isDevMode).map(a => (<option key={a.id || a.name} value={a.name}>{a.name}</option>))}
+                        {agentsList.filter(a => !a.testAgent || isDevMode).map(a => (<option key={a.id || a.name} value={a.name}>{a.name}{a.slug ? ` (/${a.slug})` : ''}</option>))}
                       </select>
                     </div>
                     <div>
                       <label className="text-xs font-bold text-slate-500 uppercase block mb-1 flex items-center gap-1">
-                        Address {agentModeReady && <MapPin className="w-3 h-3 text-green-500" />}
+                        Address <span className="text-slate-400 font-normal normal-case">(optional)</span> {agentModeReady && <MapPin className="w-3 h-3 text-green-500" />}
                       </label>
-                      <input ref={agentAddressInputRef} type="text" className="w-full border border-slate-300 rounded p-2 text-sm" placeholder={agentModeReady ? "Start typing address..." : "Loading..."} value={agentModeData.propertyAddress} onChange={(e) => { setAgentModeData(p => ({ ...p, propertyAddress: e.target.value })); setQrGenerated(false); }} />
+                      <input ref={agentAddressInputRef} type="text" className="w-full border border-slate-300 rounded p-2 text-sm" placeholder={agentModeReady ? "Start typing address... (leave blank for agent-only)" : "Loading..."} value={agentModeData.propertyAddress} onChange={(e) => { setAgentModeData(p => ({ ...p, propertyAddress: e.target.value })); setQrGenerated(false); }} />
                     </div>
 
                     {/* Collapsible Customise Form section */}
@@ -1901,7 +1956,7 @@ if (!formData.solicitorToBeAdvised) {
                       )}
                     </div>
 
-                    <button onClick={generateSmartLink} disabled={!agentModeData.agentName || !agentModeData.propertyAddress || isGeneratingLink} className="w-full bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white py-3 rounded text-sm font-bold mt-2 flex items-center justify-center gap-2">
+                    <button onClick={generateSmartLink} disabled={!agentModeData.agentName || isGeneratingLink} className="w-full bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white py-3 rounded text-sm font-bold mt-2 flex items-center justify-center gap-2">
                       {isGeneratingLink ? <Loader className="w-4 h-4 animate-spin" /> : <><QrCode className="w-4 h-4" /> Generate QR</>}
                     </button>
                   </div>
@@ -1921,7 +1976,7 @@ if (!formData.solicitorToBeAdvised) {
                     ) : (
                       <div className="text-slate-400 text-center">
                         <QrCode className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                        <p className="text-xs">Select Agent & Address<br />to generate code.</p>
+                        <p className="text-xs">Select an Agent<br />to generate code.</p>
                       </div>
                     )}
                   </div>
@@ -2056,7 +2111,11 @@ if (!formData.solicitorToBeAdvised) {
                                 <input type="tel" value={editAgentMobile} onChange={(e) => setEditAgentMobile(e.target.value)} className="w-full border border-slate-300 rounded p-1.5 text-sm" placeholder="Mobile" />
                               </div>
                               <input type="text" value={editAgentTitle} onChange={(e) => setEditAgentTitle(e.target.value)} className="w-full border border-slate-300 rounded p-1.5 text-sm" placeholder="Job Title (e.g. Sales Associate)" />
-                              
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-slate-400 shrink-0">dapto.prdoffer.com/</span>
+                                <input type="text" value={editAgentSlug} onChange={(e) => setEditAgentSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} className="flex-1 border border-slate-300 rounded p-1.5 text-sm" placeholder="slug" />
+                              </div>
+
                               <div className="space-y-1">
                                 <input 
                                   type="file" 
@@ -2090,7 +2149,7 @@ if (!formData.solicitorToBeAdvised) {
                               {a.photo ? (<img src={a.photo} alt={a.name} className="w-10 h-10 rounded-full object-cover" />) : (<div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><User className="w-5 h-5" /></div>)}
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-bold text-slate-800 truncate">{a.name} {a.testAgent && <span className="text-xs font-normal text-orange-500 ml-1">(Test)</span>}</div>
-                                <div className="text-xs text-slate-500 truncate">{a.title || 'Agent'}</div>
+                                <div className="text-xs text-slate-500 truncate">{a.title || 'Agent'}{a.slug && <span className="ml-2 text-slate-400">/{a.slug}</span>}</div>
                               </div>
                               {a.id && (
                                 <div className="flex gap-1">
@@ -2116,6 +2175,10 @@ if (!formData.solicitorToBeAdvised) {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <input type="tel" placeholder="Mobile Number" value={newAgentMobile} onChange={(e) => setNewAgentMobile(e.target.value)} className="border border-slate-300 rounded p-2 text-sm" />
                         <input type="text" placeholder="Job Title (e.g. Director)" value={newAgentTitle} onChange={(e) => setNewAgentTitle(e.target.value)} className="border border-slate-300 rounded p-2 text-sm" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-400 shrink-0">dapto.prdoffer.com/</span>
+                        <input type="text" placeholder={newAgentName ? generateSlugFromName(newAgentName) : 'auto-generated'} value={newAgentSlug} onChange={(e) => setNewAgentSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} className="flex-1 border border-slate-300 rounded p-2 text-sm" />
                       </div>
                       <div className="flex items-center gap-2">
                         <input 
@@ -2214,14 +2277,14 @@ if (!formData.solicitorToBeAdvised) {
               <p className="text-xs sm:text-sm text-green-700 mt-1">Your offer has been sent to the agent and a copy has been emailed to you.</p>
               <div className="flex gap-3 mt-2">
                 <button type="button" onClick={() => window.print()} className="text-xs font-bold text-green-800 hover:text-green-900 underline flex items-center gap-1"><Printer className="w-3 h-3" /> Print a Copy</button>
-                {!isPrefilled && (<button type="button" onClick={() => window.location.reload()} className="text-xs font-bold text-green-800 hover:text-green-900 underline">Create New Offer</button>)}
+                {!isAgentPrefilled && (<button type="button" onClick={() => window.location.reload()} className="text-xs font-bold text-green-800 hover:text-green-900 underline">Create New Offer</button>)}
               </div>
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-3 sm:pt-4 print:p-0">
-          {!isPrefilled && (
+          {!isAgentPrefilled && (
             <div id="section-agent" className={`bg-slate-50 p-4 rounded border mb-6 print:hidden scroll-mt-24 lg:scroll-mt-8 ${fieldErrors.agentName ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}>
               <label className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4" /> SELECT SELLING AGENT <span className="text-red-500">*</span>
@@ -2238,7 +2301,16 @@ if (!formData.solicitorToBeAdvised) {
           )}
 
           <SectionHeader icon={Building} title="Property Details" id="property" />
-          <InputField label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder={isMapsLoaded && !mapsError ? "Start typing address..." : "e.g. 4D/238 The Esplanade"} className="w-full" required readOnly={isPrefilled} inputRef={addressInputRef} icon={isMapsLoaded && !mapsError ? MapPin : null} error={!!fieldErrors.propertyAddress} />
+          {manualAddressEntry ? (
+            <InputField label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder="e.g. 4D/238 The Esplanade, Woonona" className="w-full" required readOnly={isAddressPrefilled} error={!!fieldErrors.propertyAddress} />
+          ) : (
+            <InputField label="Property Address" name="propertyAddress" value={formData.propertyAddress} onChange={handleChange} placeholder={isMapsLoaded && !mapsError ? "Start typing address..." : "e.g. 4D/238 The Esplanade"} className="w-full" required readOnly={isAddressPrefilled} inputRef={addressInputRef} icon={isMapsLoaded && !mapsError ? MapPin : null} error={!!fieldErrors.propertyAddress} />
+          )}
+          {!isAddressPrefilled && isMapsLoaded && !mapsError && (
+            <button type="button" onClick={toggleManualAddress} className="text-xs text-slate-400 hover:text-red-600 mt-1 underline print:hidden">
+              {manualAddressEntry ? "Use address search instead" : "Can't find your address? Enter manually"}
+            </button>
+          )}
 
 
 {/* NEW BUYER SECTION WITH TABS */}
