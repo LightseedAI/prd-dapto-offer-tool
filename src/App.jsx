@@ -333,7 +333,7 @@ const MobileProgressBar = ({ formData, isQRForm = false }) => {
   const progress = calculateProgress(formData);
   
   return (
-    <div className={`lg:hidden sticky ${isQRForm ? 'top-0 z-50' : 'top-[56px] z-40'} bg-white shadow-sm border-b border-slate-200 print:hidden`}>
+    <div className={`lg:hidden sticky top-0 ${!isQRForm ? 'sm:top-[56px]' : ''} z-40 bg-white shadow-sm border-b border-slate-200 print:hidden`}>
       <div className="w-full px-3 py-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-slate-700">Progress</span>
@@ -365,7 +365,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) =
   
   return (
     <div className="hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-40 print:hidden">
-      <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-4 w-48">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-100 p-4 w-44">
         {/* Progress Circle */}
         <div className="flex items-center justify-center mb-4">
           <div className="relative w-20 h-20">
@@ -392,7 +392,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) =
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-slate-800">{progress.percentage}%</span>
+              <span className="text-base font-semibold text-slate-700">{progress.percentage}%</span>
             </div>
           </div>
         </div>
@@ -407,7 +407,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) =
               <button
                 key={section.id}
                 onClick={() => scrollToSection(section.id)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-sm ${
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-xs ${
                   status === 'complete' 
                     ? 'bg-green-50 text-green-700' 
                     : status === 'partial'
@@ -417,7 +417,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) =
                     : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
                   status === 'complete' 
                     ? 'bg-green-500 text-white' 
                     : status === 'partial'
@@ -438,7 +438,7 @@ const DesktopProgressSidebar = ({ formData, isQRForm = false, features = {} }) =
         
         {/* Completion text */}
         <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-          <span className="text-xs text-slate-500">
+          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">
             {progress.completed} of {progress.total} fields
           </span>
         </div>
@@ -460,9 +460,9 @@ const AutoSaveIndicator = ({ show }) => {
 };
 
 const SectionHeader = ({ icon: Icon, title, id }) => (
-  <div id={id ? `section-${id}` : undefined} className="flex items-center gap-2 border-b-2 border-slate-800 pb-2 mb-4 mt-8 scroll-mt-24 lg:scroll-mt-8">
-    <Icon className="w-5 h-5 text-red-600" />
-    <h2 className="text-lg font-bold uppercase tracking-wider text-slate-800">{title}</h2>
+  <div id={id ? `section-${id}` : undefined} className="flex items-center gap-2 border-b border-slate-300 pb-2 mb-5 mt-10 scroll-mt-24 lg:scroll-mt-8">
+    <Icon className="w-4 h-4 text-red-600" />
+    <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</h2>
   </div>
 );
 
@@ -471,7 +471,7 @@ const InputField = ({ label, name, type = "text", value, onChange, placeholder, 
   
   return (
     <div className={`flex flex-col ${className}`}>
-      <label className="text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mb-1.5 flex items-center gap-1">
         {label} {required && <span className="text-red-500">*</span>}
         {Icon && <Icon className="w-3 h-3 text-slate-400" />}
       </label>
@@ -487,14 +487,14 @@ const InputField = ({ label, name, type = "text", value, onChange, placeholder, 
           onChange={onChange}
           placeholder={placeholder}
           readOnly={readOnly}
-          className={`border rounded p-2 text-sm focus:outline-none transition-colors w-full ${
+          className={`bg-white border rounded-md px-3 py-2.5 text-sm focus:outline-none transition-colors w-full ${
             prefix ? 'pl-7' : ''
           } ${
-            error 
-              ? 'border-red-500 bg-red-50 focus:ring-red-500' 
-              : readOnly 
-                ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' 
-                : 'border-slate-300 focus:ring-2 focus:ring-red-600'
+            error
+              ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-1 focus:ring-red-500/30'
+              : readOnly
+                ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                : 'border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500/30'
           } ${isCompleted ? 'pr-8' : ''}`}
           autoComplete={name === "propertyAddress" ? "off" : "on"}
           id={name} 
@@ -1770,7 +1770,7 @@ if (!formData.solicitorToBeAdvised) {
   const visibleAgents = agentsList.filter(a => !a.testAgent || isDevMode);
 
   return (
-    <div className="min-h-screen bg-slate-100 print:bg-white text-slate-800 font-sans relative">
+    <div className="min-h-screen bg-stone-50 print:bg-white text-slate-800 font-inter relative">
       <style>{`
         .pac-container { z-index: 10000 !important; }
         @keyframes highlight {
@@ -1791,7 +1791,7 @@ if (!formData.solicitorToBeAdvised) {
 
       {/* Navigation bar — hidden only for property-specific QR forms */}
       {!propertyId && (
-        <nav className="bg-slate-900 text-white p-3 sm:p-4 sticky top-0 z-50 shadow-md print:hidden">
+        <nav className="hidden sm:block bg-slate-900 text-white p-3 sm:p-4 sticky top-0 z-50 shadow-md print:hidden">
           <div className="max-w-5xl mx-auto flex justify-between items-center">
             <div className="flex items-center gap-2">
               {logoUrl && <img src={logoUrl} alt="Logo" className="h-6 sm:h-8 w-auto bg-white p-1 rounded" />}
@@ -2218,9 +2218,9 @@ if (!formData.solicitorToBeAdvised) {
 
       {/* MAIN FORM */}
       <div ref={formContainerRef} className="max-w-4xl mx-auto bg-white shadow-xl print:shadow-none min-h-screen lg:ml-56">
-        <header className="p-4 sm:p-8 pb-3 sm:pb-4 border-b border-slate-200 flex justify-between items-start print:p-0 print:mb-8">
+        <header className="p-4 sm:p-8 pb-3 sm:pb-4 border-b border-slate-100 flex justify-between items-center print:p-0 print:mb-8">
           {/* LEFT COLUMN: Logo & Agent Info */}
-          <div className="flex flex-col gap-2 sm:gap-3 max-w-[50%]">
+          <div className="flex flex-col gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0">
               {logoUrl && (
                 <img
@@ -2235,7 +2235,7 @@ if (!formData.solicitorToBeAdvised) {
             {formData.agentName && (
               <div className="flex items-center gap-2 sm:gap-3">
                 {selectedAgent?.photo ? (
-                  <img src={selectedAgent.photo} alt={formData.agentName} className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-100" />
+                  <img src={selectedAgent.photo} alt={formData.agentName} className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover ring-1 ring-slate-200" />
                 ) : (
                   <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                     <User className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -2250,8 +2250,8 @@ if (!formData.solicitorToBeAdvised) {
           </div>
 
           {/* RIGHT COLUMN: Document Title */}
-          <div className="text-right">
-            <h2 className="text-base sm:text-xl font-bold uppercase text-slate-800">Offer to Purchase</h2>
+          <div className="text-right shrink-0 ml-4">
+            <h2 className="text-base sm:text-xl font-semibold text-slate-900 whitespace-nowrap">Offer to Purchase</h2>
           </div>
         </header>
 
@@ -2314,10 +2314,10 @@ if (!formData.solicitorToBeAdvised) {
 
 
 {/* NEW BUYER SECTION WITH TABS */}
-<div className="border-b-2 border-slate-800 pb-2 mb-4 mt-8 flex items-center justify-between scroll-mt-24 lg:scroll-mt-8" id="section-buyer">
+<div className="border-b border-slate-300 pb-2 mb-5 mt-10 flex items-center justify-between scroll-mt-24 lg:scroll-mt-8" id="section-buyer">
   <div className="flex items-center gap-2">
-    <User className="w-5 h-5 text-red-600" />
-    <h2 className="text-lg font-bold uppercase tracking-wider text-slate-800">Buyer Details</h2>
+    <User className="w-4 h-4 text-red-600" />
+    <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Buyer Details</h2>
   </div>
   <button type="button" onClick={addBuyer} className="print:hidden flex items-center gap-1 px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-bold">
     <Plus className="w-4 h-4" /> Add Buyer
@@ -2331,10 +2331,10 @@ if (!formData.solicitorToBeAdvised) {
       key={index}
       type="button"
       onClick={() => setActiveBuyerTab(index)}
-      className={`px-4 py-2 rounded-t text-sm font-bold whitespace-nowrap ${
-        activeBuyerTab === index 
-          ? 'bg-red-600 text-white' 
-          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+      className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+        activeBuyerTab === index
+          ? 'bg-slate-800 text-white shadow-sm'
+          : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
       }`}
     >
       Buyer {index + 1}
@@ -2511,44 +2511,42 @@ if (!formData.solicitorToBeAdvised) {
 </div>
 
 {/* Solicitor Fields */}
+{!formData.solicitorToBeAdvised && (
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <InputField 
-    label="Company Name" 
-    name="solicitorCompany" 
-    value={formData.solicitorCompany} 
+  <InputField
+    label="Company Name"
+    name="solicitorCompany"
+    value={formData.solicitorCompany}
     onChange={handleChange}
     error={!!fieldErrors.solicitorCompany}
-    disabled={formData.solicitorToBeAdvised}
   />
-  <InputField 
-    label="Contact Person" 
-    name="solicitorContact" 
-    value={formData.solicitorContact} 
+  <InputField
+    label="Contact Person"
+    name="solicitorContact"
+    value={formData.solicitorContact}
     onChange={handleChange}
     error={!!fieldErrors.solicitorContact}
-    disabled={formData.solicitorToBeAdvised}
   />
-  <InputField 
-    label="Email" 
-    name="solicitorEmail" 
+  <InputField
+    label="Email"
+    name="solicitorEmail"
     type="email"
-    value={formData.solicitorEmail} 
+    value={formData.solicitorEmail}
     onChange={handleChange}
-    required={!formData.solicitorToBeAdvised}
+    required
     error={!!fieldErrors.solicitorEmail}
-    disabled={formData.solicitorToBeAdvised}
   />
-  <InputField 
-    label="Phone" 
-    name="solicitorPhone" 
+  <InputField
+    label="Phone"
+    name="solicitorPhone"
     type="tel"
-    value={formData.solicitorPhone} 
+    value={formData.solicitorPhone}
     onChange={handleChange}
-    required={!formData.solicitorToBeAdvised}
+    required
     error={!!fieldErrors.solicitorPhone}
-    disabled={formData.solicitorToBeAdvised}
   />
 </div>
+)}
 
 <SectionHeader icon={DollarSign} title={features.showDeposits ? "Price & Deposit" : "Price"} id="price" />
 
@@ -2567,13 +2565,13 @@ if (!formData.solicitorToBeAdvised) {
 
 {features.showDeposits && (<>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-  <div className="p-4 bg-green-50 border border-green-200 rounded">
-    <h3 className="font-bold text-green-800 mb-3 text-sm flex items-center gap-2">
-      <span>💵</span> Initial Deposit (0.25%) Non Refundable
+  <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+    <h3 className="font-semibold text-slate-700 mb-3 text-xs uppercase tracking-[0.1em]">
+      Initial Deposit (0.25%) Non Refundable
     </h3>
     <p className="text-xs text-slate-500 mb-2">0.25% of purchase price</p>
     {formData.purchasePrice ? (
-      <div className="bg-white border border-green-300 rounded px-3 py-2 text-lg font-bold text-green-800">
+      <div className="bg-white border border-slate-200 rounded px-3 py-2 text-lg font-bold text-slate-900 tabular-nums">
         ${formData.initialDeposit}
       </div>
     ) : (
@@ -2584,22 +2582,22 @@ if (!formData.solicitorToBeAdvised) {
     <p className="text-xs text-slate-500 mt-2 italic">Payable within 24 hours of offer being accepted</p>
   </div>
 
-  <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-    <h3 className="font-bold text-blue-800 mb-3 text-sm flex items-center gap-2">
-      <span>💰</span> Balance Deposit
+  <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+    <h3 className="font-semibold text-slate-700 mb-3 text-xs uppercase tracking-[0.1em]">
+      Balance Deposit
     </h3>
-    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Deposit Percentage</label>
+    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mb-1.5 block">Deposit Percentage</label>
     <select
       name="balanceDepositPercent"
       value={formData.balanceDepositPercent}
       onChange={handleChange}
-      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors mb-3"
+      className="w-full bg-white border border-slate-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 transition-colors mb-3"
     >
       <option value="5">5% of Purchase Price</option>
       <option value="10">10% of Purchase Price</option>
     </select>
     {formData.purchasePrice ? (
-      <div className="bg-white border border-blue-300 rounded px-3 py-2 text-lg font-bold text-blue-800">
+      <div className="bg-white border border-slate-200 rounded px-3 py-2 text-lg font-bold text-slate-900 tabular-nums">
         ${formData.balanceDeposit}
       </div>
     ) : (
@@ -2621,15 +2619,15 @@ if (!formData.solicitorToBeAdvised) {
 </div>
 
 {(formData.initialDeposit || formData.balanceDeposit) && (
-  <div className="bg-slate-100 border border-slate-300 rounded p-4 mb-6">
+  <div className="bg-slate-900 rounded-xl p-4 mb-6">
     <div className="flex justify-between items-center">
-      <span className="font-bold text-slate-700">Total Deposit:</span>
-      <span className="text-xl font-bold text-slate-900">
+      <span className="font-semibold text-white text-sm">Total Deposit</span>
+      <span className="text-xl font-bold text-white tabular-nums">
         ${((parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0) +
            (parseFloat(String(formData.balanceDeposit).replace(/[^0-9.]/g, '')) || 0)).toLocaleString()}
       </span>
     </div>
-    <p className="text-xs text-slate-500 mt-1">
+    <p className="text-xs text-slate-400 mt-1 tabular-nums">
       Initial ${(parseFloat(String(formData.initialDeposit).replace(/[^0-9.]/g, '')) || 0).toLocaleString()} +
       Balance ${(parseFloat(String(formData.balanceDeposit).replace(/[^0-9.]/g, '')) || 0).toLocaleString()}
     </p>
@@ -2693,10 +2691,10 @@ if (!formData.solicitorToBeAdvised) {
 
          {/* SIGNATURES SECTION */}
 <div id="section-signature" className="mt-12 mb-8 break-inside-avoid scroll-mt-24 lg:scroll-mt-8">
-  <div className="flex items-center justify-between border-b-2 border-slate-800 pb-2 mb-4">
+  <div className="flex items-center justify-between border-b border-slate-300 pb-2 mb-5">
     <div className="flex items-center gap-2">
-      <PenTool className="w-5 h-5 text-red-600" />
-      <h2 className="text-lg font-bold uppercase tracking-wider text-slate-800">Authorisation</h2>
+      <PenTool className="w-4 h-4 text-red-600" />
+      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Authorisation</h2>
     </div>
   </div>
   
@@ -2737,7 +2735,7 @@ if (!formData.solicitorToBeAdvised) {
 </div>
 
           <div className="mt-8 flex justify-end print:hidden">
-            <button type="submit" disabled={isSubmitting} className={`flex items-center gap-2 px-8 py-3 rounded text-white font-bold tracking-wide shadow-lg ${isSubmitting ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 transform hover:-translate-y-0.5 transition-all'}`}>
+            <button type="submit" disabled={isSubmitting} className={`flex items-center gap-2 px-10 py-3.5 rounded-full text-white font-bold tracking-wide transition-shadow ${isSubmitting ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-red-600 hover:bg-red-700 shadow-[0_4px_24px_rgba(220,38,38,0.35)] hover:shadow-[0_6px_28px_rgba(220,38,38,0.45)]'}`}>
               {isSubmitting ? 'Sending...' : <>Submit Offer <Send className="w-4 h-4" /></>}
             </button>
           </div>

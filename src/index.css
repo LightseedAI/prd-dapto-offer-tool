@@ -8,8 +8,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Remove focus ring for mouse/touch, restore for keyboard navigation */
 *:focus {
   outline: none;
+}
+*:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
 }
 
 /* --- FIX FOR HEADER BOUNCE: Prevent layout shifts on sticky elements --- */
@@ -77,7 +82,7 @@ nav.sticky {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #fafaf9;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -129,4 +134,16 @@ nav.sticky {
 /* Smooth progress circle animation */
 svg circle {
   transition: stroke-dashoffset 0.5s ease-out;
+}
+
+/* Tabular figures for currency/number alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Print: Playfair Display falls back to Georgia */
+@media print {
+  .font-playfair {
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  }
 }

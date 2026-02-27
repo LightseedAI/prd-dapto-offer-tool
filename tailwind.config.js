@@ -9,6 +9,9 @@ export default {
       colors: {
         'prd-red': '#dc2626',
       },
+      fontFamily: {
+        inter: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
     },
   },
   plugins: [],
