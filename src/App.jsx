@@ -166,8 +166,9 @@ const calculateProgress = (formData) => {
       if (buyer.abn) completed++;
       if (buyer.acn) completed++;
     } else {
-      total += 2; // firstName, surname
+      total += 3; // firstName, middleName, surname
       if (buyer.firstName) completed++;
+      if (buyer.middleName || buyer.noMiddleName) completed++;
       if (buyer.surname) completed++;
     }
     
@@ -195,9 +196,9 @@ const getSectionStatus = (formData, section, features = {}) => {
     let allComplete = true;
     
     buyers.forEach(buyer => {
-      const hasName = buyer.isEntity 
+      const hasName = buyer.isEntity
         ? (buyer.entityName && buyer.entityName.trim())
-        : (buyer.firstName && buyer.firstName.trim() && buyer.surname && buyer.surname.trim());
+        : (buyer.firstName && buyer.firstName.trim() && buyer.surname && buyer.surname.trim() && (buyer.noMiddleName || (buyer.middleName && buyer.middleName.trim())));
       
       const hasEmail = buyer.email && buyer.email.trim();
       const hasPhone = buyer.phone && buyer.phone.trim();
@@ -701,6 +702,7 @@ export default function App() {
         isEntity: false,
         firstName: '',
         middleName: '',
+        noMiddleName: false,
         surname: '',
         entityName: '',
         abn: '',
@@ -1251,6 +1253,7 @@ export default function App() {
         isEntity: false,
         firstName: '',
         middleName: '',
+        noMiddleName: false,
         surname: '',
         entityName: '',
         abn: '',
@@ -1332,6 +1335,7 @@ if (!formData.solicitorToBeAdvised) {
         if (!buyer.acn) errors[`buyer${index}_acn`] = `Buyer ${index + 1} ACN is required`;
       } else {
         if (!buyer.firstName) errors[`buyer${index}_firstName`] = `Buyer ${index + 1} First Name is required`;
+        if (!buyer.noMiddleName && !buyer.middleName) errors[`buyer${index}_middleName`] = `Buyer ${index + 1} Middle Name is required (or tick "No middle name")`;
         if (!buyer.surname) errors[`buyer${index}_surname`] = `Buyer ${index + 1} Surname is required`;
       }
       if (!buyer.email) errors[`buyer${index}_email`] = `Buyer ${index + 1} Email is required`;
@@ -1688,6 +1692,7 @@ if (!formData.solicitorToBeAdvised) {
           isEntity: false,
           firstName: '',
           middleName: '',
+          noMiddleName: false,
           surname: '',
           entityName: '',
           abn: '',
@@ -2391,12 +2396,27 @@ if (!formData.solicitorToBeAdvised) {
             required
             error={!!fieldErrors[`buyer${buyerIndex}_firstName`]}
           />
-          <InputField
-            label="Middle Name"
-            name={`buyer${buyerIndex}_middleName`}
-            value={buyer.middleName}
-            onChange={(e) => handleBuyerChange(buyerIndex, 'middleName', e.target.value)}
-          />
+          <div className="flex flex-col">
+            <InputField
+              label="Middle Name"
+              name={`buyer${buyerIndex}_middleName`}
+              value={buyer.middleName}
+              onChange={(e) => handleBuyerChange(buyerIndex, 'middleName', e.target.value)}
+              required={!buyer.noMiddleName}
+              readOnly={buyer.noMiddleName}
+              error={!!fieldErrors[`buyer${buyerIndex}_middleName`]}
+            />
+            <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer" onClick={() => {
+              const next = !buyer.noMiddleName;
+              handleBuyerChange(buyerIndex, 'noMiddleName', next);
+              if (next) handleBuyerChange(buyerIndex, 'middleName', '');
+            }}>
+              <div className={`w-4 h-4 border rounded flex items-center justify-center flex-shrink-0 transition-colors ${buyer.noMiddleName ? 'bg-red-600 border-red-600' : 'border-slate-300 bg-white'}`}>
+                {buyer.noMiddleName && <Check className="w-2.5 h-2.5 text-white" />}
+              </div>
+              <span className="text-[10px] text-slate-400 select-none">No middle name</span>
+            </label>
+          </div>
           <InputField
             label="Surname"
             name={`buyer${buyerIndex}_surname`}
