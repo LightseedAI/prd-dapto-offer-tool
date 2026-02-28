@@ -689,44 +689,62 @@ const EnhancedSignaturePad = ({ onEnd, onClear, signatureData, error, label = "S
 // ==============================================================================
 
 export default function App() {
-  const [formData, setFormData] = useState({
-    agentName: '',
-    agentEmail: '',
-    agentMobile: '',
-    agentTitle: '',
-    agentPhoto: '',
-    propertyAddress: '',
-    buyers: [{
-      isEntity: false,
-      firstName: '',
-      middleName: '',
-      surname: '',
-      entityName: '',
-      abn: '',
-      acn: '',
-      email: '',
-      phone: '',
-      address: '',
-      signature: null,
-      signatureDate: new Date().toISOString().split('T')[0]
-    }],
-    solicitorCompany: '',
-    solicitorContact: '',
-    solicitorEmail: '',
-    solicitorPhone: '',
-    solicitorToBeAdvised: false,
-    purchasePrice: '',
-    initialDeposit: '',
-    balanceDeposit: '',
-    balanceDepositPercent: '10',
-    balanceDepositTerms: '',
-    financeDate: '',
-    financePreApproved: false,
-    coolingOffPeriod: '5',
-    waiverCoolingOff: false,
-    inspectionDate: '',
-    settlementDate: '',
-    specialConditions: ''
+  const [formData, setFormData] = useState(() => {
+    const base = {
+      agentName: '',
+      agentEmail: '',
+      agentMobile: '',
+      agentTitle: '',
+      agentPhoto: '',
+      propertyAddress: '',
+      buyers: [{
+        isEntity: false,
+        firstName: '',
+        middleName: '',
+        surname: '',
+        entityName: '',
+        abn: '',
+        acn: '',
+        email: '',
+        phone: '',
+        address: '',
+        signature: null,
+        signatureDate: new Date().toISOString().split('T')[0]
+      }],
+      solicitorCompany: '',
+      solicitorContact: '',
+      solicitorEmail: '',
+      solicitorPhone: '',
+      solicitorToBeAdvised: false,
+      purchasePrice: '',
+      initialDeposit: '',
+      balanceDeposit: '',
+      balanceDepositPercent: '10',
+      balanceDepositTerms: '',
+      financeDate: '',
+      financePreApproved: false,
+      coolingOffPeriod: '5',
+      waiverCoolingOff: false,
+      inspectionDate: '',
+      settlementDate: '',
+      specialConditions: ''
+    };
+    // Pre-populate agent from cache for slug URLs (/hayley) so header
+    // renders immediately without waiting for the loadFromUrl effect
+    try {
+      const slug = window.location.pathname.split('/').filter(Boolean)[0];
+      if (slug) {
+        const cached = localStorage.getItem('cachedAgents');
+        if (cached) {
+          const agents = JSON.parse(cached);
+          const agent = agents.find(a => a.slug === slug);
+          if (agent) {
+            return { ...base, agentName: agent.name, agentEmail: agent.email || '', agentPhoto: agent.photo || '', agentMobile: agent.mobile || '', agentTitle: agent.title || '' };
+          }
+        }
+      }
+    } catch (e) {}
+    return base;
   });
 
   // UI State
