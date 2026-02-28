@@ -152,11 +152,10 @@ const calculateProgress = (formData) => {
   if (formData.propertyAddress) completed++;
   if (formData.purchasePrice) completed++;
 
-  // Solicitor fields only count if not "to be advised"
-  if (!formData.solicitorToBeAdvised) {
-    total += 2;
-    if (formData.solicitorEmail) completed++;
-    if (formData.solicitorPhone) completed++;
+  // Solicitor: always 1 item — complete when checkbox ticked OR email+phone filled
+  total += 1;
+  if (formData.solicitorToBeAdvised || (formData.solicitorEmail && formData.solicitorPhone)) {
+    completed++;
   }
   
   // Check each buyer (add to total dynamically)
@@ -255,8 +254,8 @@ const getSectionStatus = (formData, section, features = {}) => {
       return value && String(value).trim().length > 0;
     });
     
-    // If at least 2 out of 3 dates filled, show as complete
-    if (filledFields.length >= 2) return 'complete';
+    // Complete when all available date fields are filled (or at least 2 if 3 are available)
+    if (conditionFields.length > 0 && filledFields.length >= Math.min(2, conditionFields.length)) return 'complete';
     if (filledFields.length > 0) return 'partial';
     return 'optional'; // Show as optional if nothing filled
   }
