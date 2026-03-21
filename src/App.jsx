@@ -1781,7 +1781,6 @@ if (!formData.solicitorToBeAdvised) {
     } catch (e) { window.open(qrApiUrl, '_blank'); }
   };
 
-  const hasSecondBuyer = formData.buyerName2 && formData.buyerName2.trim().length > 0;
   const selectedAgent = agentsList.find(a => a.name === formData.agentName);
 
   // ==============================================================================
